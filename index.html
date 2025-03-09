@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAGLAPID Works</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+            margin: auto;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        select, input {
+            background: white;
+            color: black;
+        }
+        button {
+            background-color: #ff9800;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #e68900;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>MAGLAPID - Electrical Load Calculator</h1>
+    <div class="container">
+        <label for="loadType">Select Load Type:</label>
+        <select id="loadType">
+            <option value="lighting">Lighting</option>
+            <option value="outlet">Outlet</option>
+            <option value="appliance">Appliance</option>
+        </select>
+        
+        <label for="loadWatts">Enter Load in Watts:</label>
+        <input type="number" id="loadWatts" placeholder="Enter watts">
+        
+        <label for="hoursUsage">Enter Hours of Usage (Optional):</label>
+        <input type="number" id="hoursUsage" placeholder="Enter hours">
+        
+        <button onclick="calculate()">Calculate</button>
+        <button onclick="restart()">Restart</button>
+        
+        <div id="result" class="result"></div>
+        <div id="solarBatteryResult" class="result"></div>
+    </div>
+    
+    <script>
+        let totalLoadWatts = 0;
+
+        function calculate() {
+            let loadWatts = parseFloat(document.getElementById("loadWatts").value);
+            let hoursUsage = parseFloat(document.getElementById("hoursUsage").value);
+            
+            if (!isNaN(loadWatts) && loadWatts > 0) {
+                totalLoadWatts = loadWatts;
+            } else {
+                alert("Please enter a valid wattage.");
+                return;
+            }
+
+            let voltage = 230; // Standard voltage in the Philippines
+            let current = totalLoadWatts / voltage;
+            let breakerSize;
+            let wireSize;
+
+            if (current <= 15) {
+                breakerSize = "15A";
+                wireSize = "2.0mm²";
+            } else if (current <= 20) {
+                breakerSize = "20A";
+                wireSize = "3.5mm²";
+            } else if (current <= 30) {
+                breakerSize = "30A";
+                wireSize = "5.5mm²";
+            } else {
+                breakerSize = "Requires heavy-duty circuit";
+                wireSize = "Consult PEC for higher loads";
+            }
+
+            document.getElementById("result").innerHTML = 
+                `<h3>Electrical Load Calculation</h3>
+                <p><strong>Total Load (Watts):</strong> ${totalLoadWatts}W</p>
+                <p><strong>Current Draw:</strong> ${current.toFixed(2)}A</p>
+                <p><strong>Recommended Breaker Size:</strong> ${breakerSize}</p>
+                <p><strong>Recommended Wire Size:</strong> ${wireSize}</p>`;
+
+            if (!isNaN(hoursUsage) && hoursUsage > 0) {
+                let energyConsumption = totalLoadWatts * hoursUsage;
+                let solarPanelWatts = totalLoadWatts * 1.25; // 25% buffer
+                let batteryAmpHours = (energyConsumption / 12); // Energy requirement in Ah (12V system)
+
+                document.getElementById("solarBatteryResult").innerHTML = 
+                    `<h3>Solar & Battery Calculation</h3>
+                    <p><strong>Recommended Solar Panel Size:</strong> ${solarPanelWatts.toFixed(2)}W</p>
+                    <p><strong>Recommended Battery Size:</strong> ${batteryAmpHours.toFixed(2)}Ah (12V)</p>`;
+            } else {
+                document.getElementById("solarBatteryResult").innerHTML = "";
+            }
+        }
+
+        function restart() {
+            totalLoadWatts = 0;
+            document.getElementById("loadWatts").value = "";
+            document.getElementById("hoursUsage").value = "";
+            document.getElementById("result").innerHTML = "";
+            document.getElementById("solarBatteryResult").innerHTML = "";
+        }
+    </script>
+</body>
+</html>
