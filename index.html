@@ -60,13 +60,14 @@
     </style>
 </head>
 <body>
-    <h1>MAGLAPID - Electrical Load Calculator</h1>
+    <h1>MAGLAPID Load Calculator</h1>
     <div class="container">
         <label for="loadType">Select Load Type:</label>
         <select id="loadType">
             <option value="lighting">Lighting</option>
             <option value="outlet">Outlet</option>
             <option value="appliance">Appliance</option>
+            <option value="motor">Motor</option>
         </select>
         
         <label for="loadWatts">Enter Load in Watts:</label>
@@ -83,61 +84,60 @@
     </div>
     
     <script>
-        let totalLoadWatts = 0;
-
         function calculate() {
+            let loadType = document.getElementById("loadType").value;
             let loadWatts = parseFloat(document.getElementById("loadWatts").value);
             let hoursUsage = parseFloat(document.getElementById("hoursUsage").value);
             
             if (!isNaN(loadWatts) && loadWatts > 0) {
-                totalLoadWatts = loadWatts;
+                let demandFactor = 0.8;
+                if (loadType === "motor") {
+                    demandFactor = 1.25;
+                }
+                let adjustedLoadWatts = loadWatts * demandFactor;
+                let voltage = 230;
+                let current = adjustedLoadWatts / voltage;
+                let breakerSize, wireSize;
+                
+                if (current <= 15 && loadType === "lighting") {
+                    breakerSize = "15A";
+                    wireSize = "2.0mm²";
+                } else if (current <= 20 || loadType !== "lighting") {
+                    breakerSize = "20A";
+                    wireSize = "3.5mm²";
+                } else if (current <= 30) {
+                    breakerSize = "30A";
+                    wireSize = "5.5mm²";
+                } else {
+                    breakerSize = "Requires heavy-duty circuit";
+                    wireSize = "Consult PEC for higher loads";
+                }
+
+                document.getElementById("result").innerHTML = 
+                    `<h3>Electrical Load Calculation</h3>
+                    <p><strong>Adjusted Load (Watts, ${demandFactor * 100}% Factor):</strong> ${adjustedLoadWatts.toFixed(2)}W</p>
+                    <p><strong>Current Draw:</strong> ${current.toFixed(2)}A</p>
+                    <p><strong>Recommended Breaker Size:</strong> ${breakerSize}</p>
+                    <p><strong>Recommended Wire Size:</strong> ${wireSize}</p>`;
+                
+                if (!isNaN(hoursUsage) && hoursUsage > 0) {
+                    let energyConsumption = adjustedLoadWatts * hoursUsage;
+                    let solarPanelWatts = adjustedLoadWatts * 1.25;
+                    let batteryAmpHours = (energyConsumption / 12) / 0.8;
+
+                    document.getElementById("solarBatteryResult").innerHTML = 
+                        `<h3>Solar & Battery Calculation</h3>
+                        <p><strong>Recommended Solar Panel Size:</strong> ${solarPanelWatts.toFixed(2)}W</p>
+                        <p><strong>Recommended Battery Size:</strong> ${batteryAmpHours.toFixed(2)}Ah (12V, 80% DOD)</p>`;
+                } else {
+                    document.getElementById("solarBatteryResult").innerHTML = "";
+                }
             } else {
                 alert("Please enter a valid wattage.");
-                return;
-            }
-
-            let voltage = 230; // Standard voltage in the Philippines
-            let current = totalLoadWatts / voltage;
-            let breakerSize;
-            let wireSize;
-
-            if (current <= 15) {
-                breakerSize = "15A";
-                wireSize = "2.0mm²";
-            } else if (current <= 20) {
-                breakerSize = "20A";
-                wireSize = "3.5mm²";
-            } else if (current <= 30) {
-                breakerSize = "30A";
-                wireSize = "5.5mm²";
-            } else {
-                breakerSize = "Requires heavy-duty circuit";
-                wireSize = "Consult PEC for higher loads";
-            }
-
-            document.getElementById("result").innerHTML = 
-                `<h3>Electrical Load Calculation</h3>
-                <p><strong>Total Load (Watts):</strong> ${totalLoadWatts}W</p>
-                <p><strong>Current Draw:</strong> ${current.toFixed(2)}A</p>
-                <p><strong>Recommended Breaker Size:</strong> ${breakerSize}</p>
-                <p><strong>Recommended Wire Size:</strong> ${wireSize}</p>`;
-
-            if (!isNaN(hoursUsage) && hoursUsage > 0) {
-                let energyConsumption = totalLoadWatts * hoursUsage;
-                let solarPanelWatts = totalLoadWatts * 1.25; // 25% buffer
-                let batteryAmpHours = (energyConsumption / 12); // Energy requirement in Ah (12V system)
-
-                document.getElementById("solarBatteryResult").innerHTML = 
-                    `<h3>Solar & Battery Calculation</h3>
-                    <p><strong>Recommended Solar Panel Size:</strong> ${solarPanelWatts.toFixed(2)}W</p>
-                    <p><strong>Recommended Battery Size:</strong> ${batteryAmpHours.toFixed(2)}Ah (12V)</p>`;
-            } else {
-                document.getElementById("solarBatteryResult").innerHTML = "";
             }
         }
 
         function restart() {
-            totalLoadWatts = 0;
             document.getElementById("loadWatts").value = "";
             document.getElementById("hoursUsage").value = "";
             document.getElementById("result").innerHTML = "";
