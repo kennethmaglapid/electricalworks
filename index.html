@@ -3,60 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAGLAPID Works</title>
+    <title>MAGLAPID Load Calculator</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
             background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-            color: white;
-            text-align: center;
-            padding: 20px;
+            color: white; text-align: center; padding: 20px;
         }
         .container {
             background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 10px;
+            padding: 20px; border-radius: 10px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-            width: 90%;
-            max-width: 600px;
-            margin: auto;
+            width: 90%; max-width: 600px; margin: auto;
         }
         input, select, button {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
+            width: 100%; padding: 10px; margin: 10px 0;
+            border: none; border-radius: 5px; font-size: 16px;
         }
-        select, input {
-            background: white;
-            color: black;
-        }
+        select, input { background: white; color: black; }
         button {
-            background-color: #ff9800;
-            color: white;
-            cursor: pointer;
-            font-weight: bold;
+            background-color: #ff9800; color: white;
+            cursor: pointer; font-weight: bold;
         }
-        button:hover {
-            background-color: #e68900;
-        }
+        button:hover { background-color: #e68900; }
         .result {
-            margin-top: 20px;
-            padding: 15px;
+            margin-top: 20px; padding: 15px;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 5px;
         }
-        h1 {
-            font-size: 2em;
-            margin-bottom: 10px;
-        }
+        h1 { font-size: 2em; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -68,13 +44,40 @@
             <option value="outlet">Outlet</option>
             <option value="appliance">Appliance</option>
             <option value="motor">Motor</option>
+            <option value="hvac">HVAC System</option>
+            <option value="data_center">Data Center</option>
+            <option value="ev">EV Charger</option>
+            <option value="industrial">Industrial Equipment</option>
+        </select>
+        
+        <label for="voltage">Select Voltage:</label>
+        <select id="voltage">
+            <option value="110">110V</option>
+            <option value="230">230V</option>
+            <option value="440">440V</option>
+        </select>
+
+        <label for="powerFactor">Select Power Factor (For Motors/Appliances):</label>
+        <select id="powerFactor">
+            <option value="1">1.0 (Resistive Load)</option>
+            <option value="0.9">0.9 (Standard)</option>
+            <option value="0.8">0.8 (Inductive Load)</option>
         </select>
         
         <label for="loadWatts">Enter Load in Watts:</label>
         <input type="number" id="loadWatts" placeholder="Enter watts">
         
-        <label for="hoursUsage">Enter Hours of Usage (Optional):</label>
+        <label for="hoursUsage">Enter Hours of Usage:</label>
         <input type="number" id="hoursUsage" placeholder="Enter hours">
+        
+        <label for="material">Select Conductor Material:</label>
+        <select id="material">
+            <option value="copper">Copper</option>
+            <option value="aluminum">Aluminum</option>
+        </select>
+        
+        <label for="energyRate">Energy Cost per kWh (₱):</label>
+        <input type="number" id="energyRate" placeholder="Enter cost per kWh">
         
         <button onclick="calculate()">Calculate</button>
         <button onclick="restart()">Restart</button>
@@ -88,47 +91,31 @@
             let loadType = document.getElementById("loadType").value;
             let loadWatts = parseFloat(document.getElementById("loadWatts").value);
             let hoursUsage = parseFloat(document.getElementById("hoursUsage").value);
+            let voltage = parseFloat(document.getElementById("voltage").value);
+            let powerFactor = parseFloat(document.getElementById("powerFactor").value);
+            let material = document.getElementById("material").value;
+            let energyRate = parseFloat(document.getElementById("energyRate").value);
             
             if (!isNaN(loadWatts) && loadWatts > 0) {
-                let demandFactor = 0.8;
-                if (loadType === "motor") {
-                    demandFactor = 1.25;
-                }
-                let adjustedLoadWatts = loadWatts * demandFactor;
-                let voltage = 230;
+                let adjustedLoadWatts = loadWatts / powerFactor;
                 let current = adjustedLoadWatts / voltage;
-                let breakerSize, wireSize;
+                let breakerSize = current <= 15 ? "15A" : current <= 20 ? "20A" : current <= 30 ? "30A" : "Heavy Duty";
+                let wireSize = material === "copper" ? "2.0mm²" : "3.5mm²";
                 
-                if (current <= 15 && loadType === "lighting") {
-                    breakerSize = "15A";
-                    wireSize = "2.0mm²";
-                } else if (current <= 20 || loadType !== "lighting") {
-                    breakerSize = "20A";
-                    wireSize = "3.5mm²";
-                } else if (current <= 30) {
-                    breakerSize = "30A";
-                    wireSize = "5.5mm²";
-                } else {
-                    breakerSize = "Requires heavy-duty circuit";
-                    wireSize = "Consult PEC for higher loads";
-                }
-
                 document.getElementById("result").innerHTML = 
                     `<h3>Electrical Load Calculation</h3>
-                    <p><strong>Adjusted Load (Watts, ${demandFactor * 100}% Factor):</strong> ${adjustedLoadWatts.toFixed(2)}W</p>
+                    <p><strong>Adjusted Load (Watts):</strong> ${adjustedLoadWatts.toFixed(2)}W</p>
                     <p><strong>Current Draw:</strong> ${current.toFixed(2)}A</p>
                     <p><strong>Recommended Breaker Size:</strong> ${breakerSize}</p>
-                    <p><strong>Recommended Wire Size:</strong> ${wireSize}</p>`;
+                    <p><strong>Recommended Wire Size:</strong> ${wireSize} (${material})</p>`;
                 
                 if (!isNaN(hoursUsage) && hoursUsage > 0) {
-                    let energyConsumption = adjustedLoadWatts * hoursUsage;
-                    let solarPanelWatts = adjustedLoadWatts * 1.25;
-                    let batteryAmpHours = (energyConsumption / 12) / 0.8;
-
+                    let energyConsumption = (adjustedLoadWatts * hoursUsage) / 1000;
+                    let cost = energyConsumption * energyRate;
                     document.getElementById("solarBatteryResult").innerHTML = 
-                        `<h3>Solar & Battery Calculation</h3>
-                        <p><strong>Recommended Solar Panel Size:</strong> ${solarPanelWatts.toFixed(2)}W</p>
-                        <p><strong>Recommended Battery Size:</strong> ${batteryAmpHours.toFixed(2)}Ah (12V, 80% DOD)</p>`;
+                        `<h3>Energy & Cost Calculation</h3>
+                        <p><strong>Energy Consumption:</strong> ${energyConsumption.toFixed(2)} kWh</p>
+                        <p><strong>Estimated Cost:</strong> ₱${cost.toFixed(2)}</p>`;
                 } else {
                     document.getElementById("solarBatteryResult").innerHTML = "";
                 }
@@ -136,10 +123,8 @@
                 alert("Please enter a valid wattage.");
             }
         }
-
         function restart() {
-            document.getElementById("loadWatts").value = "";
-            document.getElementById("hoursUsage").value = "";
+            document.querySelectorAll("input").forEach(input => input.value = "");
             document.getElementById("result").innerHTML = "";
             document.getElementById("solarBatteryResult").innerHTML = "";
         }
