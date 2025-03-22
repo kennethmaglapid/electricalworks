@@ -87,6 +87,7 @@
         <button onclick="restart()">Restart</button>
         
         <div id="result" class="result"></div>
+        <div id="solarBatteryResult" class="result"></div>
     </div>
     
     <script>
@@ -117,6 +118,15 @@
                                    <p><strong>Consumption:</strong> ${energyConsumption.toFixed(2)} kWh</p>
                                    <p><strong>Cost:</strong> ₱${cost.toFixed(2)}</p>`;
                 }
+                
+                let solarPanelWatts = adjustedLoadWatts * 1.25;
+                let batteryAmpHours = (adjustedLoadWatts * hoursUsage) / (12 * 0.8);
+                
+                document.getElementById("solarBatteryResult").innerHTML = 
+                    `<h3>Solar & Battery Calculation</h3>
+                    <p><strong>Recommended Solar Panel Size:</strong> ${solarPanelWatts.toFixed(2)}W</p>
+                    <p><strong>Recommended Battery Size:</strong> ${batteryAmpHours.toFixed(2)}Ah (12V, 80% DOD)</p>`;
+                
                 document.getElementById("result").innerHTML = resultHTML;
             } else {
                 alert("Please enter at least the wattage.");
@@ -126,6 +136,7 @@
         function restart() {
             document.querySelectorAll("input, select").forEach(el => el.value = "");
             document.getElementById("result").innerHTML = "";
+            document.getElementById("solarBatteryResult").innerHTML = "";
         }
     </script>
 </body>
