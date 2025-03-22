@@ -33,6 +33,7 @@
             border-radius: 5px;
         }
         h1 { font-size: 2em; margin-bottom: 10px; }
+        img { max-width: 100%; border-radius: 5px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -112,11 +113,17 @@
             let motorWiring = "";
             
             if (motorControl === "dol") {
-                motorWiring = "<h3>Direct-On-Line (DOL) Wiring</h3><p>Use a simple contactor and overload relay with a start/stop push button.</p>";
+                motorWiring = `<h3>Direct-On-Line (DOL) Wiring</h3>
+                               <p>Use a simple contactor and overload relay with a start/stop push button.</p>
+                               <img src='dol_wiring.png' alt='DOL Wiring Diagram'>`;
             } else if (motorControl === "star_delta") {
-                motorWiring = "<h3>Star-Delta Wiring</h3><p>Requires three contactors and a timer for switching between star and delta.</p>";
+                motorWiring = `<h3>Star-Delta Wiring</h3>
+                               <p>Requires three contactors and a timer for switching between star and delta.</p>
+                               <img src='star_delta_wiring.png' alt='Star-Delta Wiring Diagram'>`;
             } else if (motorControl === "forward_reverse") {
-                motorWiring = "<h3>Forward-Reverse Wiring</h3><p>Uses two contactors with interlocking for reversing motor direction.</p>";
+                motorWiring = `<h3>Forward-Reverse Wiring</h3>
+                               <p>Uses two contactors with interlocking for reversing motor direction.</p>
+                               <img src='forward_reverse_wiring.png' alt='Forward-Reverse Wiring Diagram'>`;
             }
             
             document.getElementById("motorWiring").innerHTML = motorWiring;
