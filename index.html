@@ -39,7 +39,7 @@
     <h1>MAGLAPID Load Calculator</h1>
     <div class="container">
         <label for="loadType">Select Load Type:</label>
-        <select id="loadType">
+        <select id="loadType" onchange="showMotorControlOptions()">
             <option value="">-- Select Load Type --</option>
             <option value="lighting">Lighting</option>
             <option value="outlet">Outlet</option>
@@ -50,6 +50,16 @@
             <option value="ev">EV Charger</option>
             <option value="industrial">Industrial Equipment</option>
         </select>
+        
+        <div id="motorControlOptions" style="display: none;">
+            <label for="motorControl">Select Motor Control Type:</label>
+            <select id="motorControl">
+                <option value="">-- Select Control Type --</option>
+                <option value="dol">Direct-On-Line (DOL)</option>
+                <option value="star_delta">Star-Delta</option>
+                <option value="forward_reverse">Forward-Reverse</option>
+            </select>
+        </div>
         
         <label for="voltage">Select Voltage:</label>
         <select id="voltage">
@@ -87,56 +97,36 @@
         <button onclick="restart()">Restart</button>
         
         <div id="result" class="result"></div>
-        <div id="solarBatteryResult" class="result"></div>
+        <div id="motorWiring" class="result"></div>
     </div>
     
     <script>
-        function calculate() {
-            let loadWatts = parseFloat(document.getElementById("loadWatts").value) || 0;
-            let voltage = parseFloat(document.getElementById("voltage").value) || 230;
-            let powerFactor = parseFloat(document.getElementById("powerFactor").value) || 1;
-            let material = document.getElementById("material").value || "copper";
-            let energyRate = parseFloat(document.getElementById("energyRate").value) || 0;
-            let hoursUsage = parseFloat(document.getElementById("hoursUsage").value) || 0;
-            
-            if (loadWatts > 0) {
-                let adjustedLoadWatts = loadWatts / powerFactor;
-                let current = adjustedLoadWatts / voltage;
-                let breakerSize = current <= 15 ? "15A" : current <= 20 ? "20A" : current <= 30 ? "30A" : "Heavy Duty";
-                let wireSize = material === "copper" ? "2.0mm²" : "3.5mm²";
-                
-                let resultHTML = `<h3>Electrical Load Calculation</h3>
-                                 <p><strong>Adjusted Load:</strong> ${adjustedLoadWatts.toFixed(2)}W</p>
-                                 <p><strong>Current Draw:</strong> ${current.toFixed(2)}A</p>
-                                 <p><strong>Breaker Size:</strong> ${breakerSize}</p>
-                                 <p><strong>Wire Size:</strong> ${wireSize} (${material})</p>`;
-                
-                if (hoursUsage > 0 && energyRate > 0) {
-                    let energyConsumption = (adjustedLoadWatts * hoursUsage) / 1000;
-                    let cost = energyConsumption * energyRate;
-                    resultHTML += `<h3>Energy & Cost</h3>
-                                   <p><strong>Consumption:</strong> ${energyConsumption.toFixed(2)} kWh</p>
-                                   <p><strong>Cost:</strong> ₱${cost.toFixed(2)}</p>`;
-                }
-                
-                let solarPanelWatts = adjustedLoadWatts * 1.25;
-                let batteryAmpHours = (adjustedLoadWatts * hoursUsage) / (12 * 0.8);
-                
-                document.getElementById("solarBatteryResult").innerHTML = 
-                    `<h3>Solar & Battery Calculation</h3>
-                    <p><strong>Recommended Solar Panel Size:</strong> ${solarPanelWatts.toFixed(2)}W</p>
-                    <p><strong>Recommended Battery Size:</strong> ${batteryAmpHours.toFixed(2)}Ah (12V, 80% DOD)</p>`;
-                
-                document.getElementById("result").innerHTML = resultHTML;
-            } else {
-                alert("Please enter at least the wattage.");
-            }
+        function showMotorControlOptions() {
+            let loadType = document.getElementById("loadType").value;
+            let motorControlOptions = document.getElementById("motorControlOptions");
+            motorControlOptions.style.display = loadType === "motor" ? "block" : "none";
         }
 
+        function calculate() {
+            let motorControl = document.getElementById("motorControl").value;
+            let motorWiring = "";
+            
+            if (motorControl === "dol") {
+                motorWiring = "<h3>Direct-On-Line (DOL) Wiring</h3><p>Use a simple contactor and overload relay with a start/stop push button.</p>";
+            } else if (motorControl === "star_delta") {
+                motorWiring = "<h3>Star-Delta Wiring</h3><p>Requires three contactors and a timer for switching between star and delta.</p>";
+            } else if (motorControl === "forward_reverse") {
+                motorWiring = "<h3>Forward-Reverse Wiring</h3><p>Uses two contactors with interlocking for reversing motor direction.</p>";
+            }
+            
+            document.getElementById("motorWiring").innerHTML = motorWiring;
+        }
+        
         function restart() {
             document.querySelectorAll("input, select").forEach(el => el.value = "");
             document.getElementById("result").innerHTML = "";
-            document.getElementById("solarBatteryResult").innerHTML = "";
+            document.getElementById("motorWiring").innerHTML = "";
+            document.getElementById("motorControlOptions").style.display = "none";
         }
     </script>
 </body>
