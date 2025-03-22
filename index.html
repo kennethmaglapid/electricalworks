@@ -40,6 +40,7 @@
     <div class="container">
         <label for="loadType">Select Load Type:</label>
         <select id="loadType">
+            <option value="">-- Select Load Type --</option>
             <option value="lighting">Lighting</option>
             <option value="outlet">Outlet</option>
             <option value="appliance">Appliance</option>
@@ -52,6 +53,7 @@
         
         <label for="voltage">Select Voltage:</label>
         <select id="voltage">
+            <option value="">-- Select Voltage --</option>
             <option value="110">110V</option>
             <option value="230">230V</option>
             <option value="440">440V</option>
@@ -59,6 +61,7 @@
 
         <label for="powerFactor">Select Power Factor (For Motors/Appliances):</label>
         <select id="powerFactor">
+            <option value="">-- Select Power Factor --</option>
             <option value="1">1.0 (Resistive Load)</option>
             <option value="0.9">0.9 (Standard)</option>
             <option value="0.8">0.8 (Inductive Load)</option>
@@ -72,6 +75,7 @@
         
         <label for="material">Select Conductor Material:</label>
         <select id="material">
+            <option value="">-- Select Material --</option>
             <option value="copper">Copper</option>
             <option value="aluminum">Aluminum</option>
         </select>
@@ -83,50 +87,45 @@
         <button onclick="restart()">Restart</button>
         
         <div id="result" class="result"></div>
-        <div id="solarBatteryResult" class="result"></div>
     </div>
     
     <script>
         function calculate() {
-            let loadType = document.getElementById("loadType").value;
-            let loadWatts = parseFloat(document.getElementById("loadWatts").value);
-            let hoursUsage = parseFloat(document.getElementById("hoursUsage").value);
-            let voltage = parseFloat(document.getElementById("voltage").value);
-            let powerFactor = parseFloat(document.getElementById("powerFactor").value);
-            let material = document.getElementById("material").value;
-            let energyRate = parseFloat(document.getElementById("energyRate").value);
+            let loadWatts = parseFloat(document.getElementById("loadWatts").value) || 0;
+            let voltage = parseFloat(document.getElementById("voltage").value) || 230;
+            let powerFactor = parseFloat(document.getElementById("powerFactor").value) || 1;
+            let material = document.getElementById("material").value || "copper";
+            let energyRate = parseFloat(document.getElementById("energyRate").value) || 0;
+            let hoursUsage = parseFloat(document.getElementById("hoursUsage").value) || 0;
             
-            if (!isNaN(loadWatts) && loadWatts > 0) {
+            if (loadWatts > 0) {
                 let adjustedLoadWatts = loadWatts / powerFactor;
                 let current = adjustedLoadWatts / voltage;
                 let breakerSize = current <= 15 ? "15A" : current <= 20 ? "20A" : current <= 30 ? "30A" : "Heavy Duty";
                 let wireSize = material === "copper" ? "2.0mm²" : "3.5mm²";
                 
-                document.getElementById("result").innerHTML = 
-                    `<h3>Electrical Load Calculation</h3>
-                    <p><strong>Adjusted Load (Watts):</strong> ${adjustedLoadWatts.toFixed(2)}W</p>
-                    <p><strong>Current Draw:</strong> ${current.toFixed(2)}A</p>
-                    <p><strong>Recommended Breaker Size:</strong> ${breakerSize}</p>
-                    <p><strong>Recommended Wire Size:</strong> ${wireSize} (${material})</p>`;
+                let resultHTML = `<h3>Electrical Load Calculation</h3>
+                                 <p><strong>Adjusted Load:</strong> ${adjustedLoadWatts.toFixed(2)}W</p>
+                                 <p><strong>Current Draw:</strong> ${current.toFixed(2)}A</p>
+                                 <p><strong>Breaker Size:</strong> ${breakerSize}</p>
+                                 <p><strong>Wire Size:</strong> ${wireSize} (${material})</p>`;
                 
-                if (!isNaN(hoursUsage) && hoursUsage > 0) {
+                if (hoursUsage > 0 && energyRate > 0) {
                     let energyConsumption = (adjustedLoadWatts * hoursUsage) / 1000;
                     let cost = energyConsumption * energyRate;
-                    document.getElementById("solarBatteryResult").innerHTML = 
-                        `<h3>Energy & Cost Calculation</h3>
-                        <p><strong>Energy Consumption:</strong> ${energyConsumption.toFixed(2)} kWh</p>
-                        <p><strong>Estimated Cost:</strong> ₱${cost.toFixed(2)}</p>`;
-                } else {
-                    document.getElementById("solarBatteryResult").innerHTML = "";
+                    resultHTML += `<h3>Energy & Cost</h3>
+                                   <p><strong>Consumption:</strong> ${energyConsumption.toFixed(2)} kWh</p>
+                                   <p><strong>Cost:</strong> ₱${cost.toFixed(2)}</p>`;
                 }
+                document.getElementById("result").innerHTML = resultHTML;
             } else {
-                alert("Please enter a valid wattage.");
+                alert("Please enter at least the wattage.");
             }
         }
+
         function restart() {
-            document.querySelectorAll("input").forEach(input => input.value = "");
+            document.querySelectorAll("input, select").forEach(el => el.value = "");
             document.getElementById("result").innerHTML = "";
-            document.getElementById("solarBatteryResult").innerHTML = "";
         }
     </script>
 </body>
