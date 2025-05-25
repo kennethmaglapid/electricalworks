@@ -10,6 +10,51 @@
     button:hover { background-color: #007BFF; color: white; }
     .results { background: #eef; padding: 15px; border-radius: 8px; margin-top: 20px; white-space: pre-line; }
     .mode-section { display: none; margin-top: 10px; }
+        body {
+      font-family: Arial;
+      padding: 20px;
+      max-width: 750px;
+      margin: auto;
+      animation: backgroundShift 30s ease-in-out infinite;
+      background: linear-gradient(-45deg, #cceeff, #e6ccff, #ffcccc, #ffffcc);
+      background-size: 600% 600%;
+    }
+
+    @keyframes backgroundShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #007BFF;
+      color: white;
+    }
+
+    .results {
+      background: #eef;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      white-space: pre-line;
+    }
+
+    .mode-section {
+      display: none;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
