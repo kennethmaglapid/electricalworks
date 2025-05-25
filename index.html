@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,6 +19,7 @@
   <select id="mode" onchange="toggleMode()">
     <option value="design">🔧 Design Full System</option>
     <option value="haveBattery">🔋 I Have a Battery</option>
+    <option value="chargeOnly">☀️ Just Charge My Battery</option>
   </select>
 
   <!-- Full Design Section -->
@@ -46,6 +46,12 @@
     <input type="number" id="haveHours" placeholder="e.g. 6" />
   </div>
 
+  <!-- Just Charge Battery Section -->
+  <div id="chargeOnlyMode" class="mode-section">
+    <label>Battery Capacity (Ah):</label>
+    <input type="number" id="chargeBatteryAh" placeholder="e.g. 65" />
+  </div>
+
   <label>System Voltage:</label>
   <select id="systemVoltage">
     <option value="12">12V</option>
@@ -68,6 +74,7 @@
       const mode = document.getElementById('mode').value;
       document.getElementById('designMode').style.display = mode === 'design' ? 'block' : 'none';
       document.getElementById('batteryMode').style.display = mode === 'haveBattery' ? 'block' : 'none';
+      document.getElementById('chargeOnlyMode').style.display = mode === 'chargeOnly' ? 'block' : 'none';
       document.getElementById('results').innerHTML = "";
     }
 
@@ -126,12 +133,15 @@
         const batteryType = batteryAhRequired > 200 ? "LiFePO4 or Gel" : "AGM or Lead-Acid";
 
         resultHTML = `
-          🔋 Battery Needed: ${batteryAhRequired}Ah (${batteryType}) at ${voltage}V
-          ☀️ Solar Panel: ${solarWatts}W minimum
-          ⚡ Charge Controller: ${controllerAmps}A MPPT/PWM
-          🧯 Breaker: ${breakerType}
+🔋 Battery Needed: ${batteryAhRequired}Ah (${batteryType}) at ${voltage}V
+☀️ Solar Panel: ${solarWatts}W minimum
+⚡ Charge Controller: ${controllerAmps}A MPPT/PWM
+🧯 Breaker: ${breakerType}
 
-          Your ${batteryAh}Ah battery can power ${load}W for approximately ${batteryRuntimeFormatted}.
+Your ${batteryAh}Ah battery can power ${load}W for approximately ${batteryRuntimeFormatted}.
+📌 Note:
+- Solar panel watts are based on average 4 sun hours/day and 15–20% system losses.
+- Breaker and SCC sizes reflect standard components and avoid oversizing.
         `;
       }
 
@@ -170,40 +180,65 @@
         const batteryType = batteryAh > 200 ? "LiFePO4 or Gel" : "AGM or Lead-Acid";
 
         resultHTML = `
-          🔋 Battery You Have: ${batteryAh}Ah (${batteryType}) at ${voltage}V
-          🕒 Estimated Runtime: ${runtimeFormatted} for ${load}W
+🔋 Battery You Have: ${batteryAh}Ah (${batteryType}) at ${voltage}V
+🕒 Estimated Runtime: ${runtimeFormatted} for ${load}W
 
-          ☀️ Recommended Solar Panel: ${solarWatts}W minimum
-          ⚡ Recommended Charge Controller: ${controllerAmps}A MPPT/PWM
-          🧯 Recommended Breaker: ${breakerType}
+☀️ Recommended Solar Panel: ${solarWatts}W minimum
+⚡ Recommended Charge Controller: ${controllerAmps}A MPPT/PWM
+🧯 Recommended Breaker: ${breakerType}
+
+📌 Note:
+- Solar panel watts are based on average 4 sun hours/day and 15–20% system losses.
+- Breaker and SCC sizes reflect standard components and avoid oversizing.
+        `;
+      }
+
+      else if (mode === 'chargeOnly') {
+        const batteryAh = parseFloat(document.getElementById('chargeBatteryAh').value);
+
+        if (!batteryAh) {
+          alert("Please enter a valid battery capacity.");
+          return;
+        }
+
+        const usableWh = batteryAh * voltage;
+        const solarWatts = Math.ceil(usableWh / 4 * 1.15); // 15% losses, 4 sun hours
+        const controllerAmps = Math.ceil(solarWatts / voltage * 1.15); // 15% safety
+
+        const batteryType = batteryAh > 200 ? "LiFePO4 or Gel" : "AGM or Lead-Acid";
+
+        resultHTML = `
+🔋 Battery: ${batteryAh}Ah (${batteryType}) at ${voltage}V
+
+☀️ To fully charge this battery in one sunny day:
+- Recommended Solar Panel: ${solarWatts}W minimum
+- Recommended Charge Controller: ${controllerAmps}A MPPT/PWM
+
+📌 Note:
+- Assumes 4 sun hours/day and 15% system losses.
         `;
       }
 
       document.getElementById("results").innerText = resultHTML;
     }
 
-    // Suggest realistic DC breaker sizes available in shops
     function getDCBreaker(amps) {
-  const sizes = [5,10,15,20,25,30,40,50,60];
-  for (let size of sizes) {
-    if (amps <= size) return `DC Circuit Breaker (${size}A)`;
-  }
-  return `DC Breaker >${sizes[sizes.length-1]}A (custom or parallel breakers)`;
-}
+      const sizes = [5,10,15,20,25,30,40,50,60];
+      for (let size of sizes) {
+        if (amps <= size) return `DC Circuit Breaker (${size}A)`;
+      }
+      return `DC Breaker >${sizes[sizes.length-1]}A (custom or parallel breakers)`;
+    }
 
-function getACBreaker(amps) {
-  const sizes = [6,10,13,16,20,25,32,40,50];
-  for (let size of sizes) {
-    if (amps <= size) return `AC Circuit Breaker (${size}A)`;
-  }
-  return `AC Breaker >${sizes[sizes.length-1]}A (custom or split load)`;
-}
+    function getACBreaker(amps) {
+      const sizes = [6,10,13,16,20,25,32,40,50];
+      for (let size of sizes) {
+        if (amps <= size) return `AC Circuit Breaker (${size}A)`;
+      }
+      return `AC Breaker >${sizes[sizes.length-1]}A (custom or split load)`;
+    }
 
     toggleMode(); // Show default mode
   </script>
 </body>
-</html>resultHTML += `
-  📌 Note:
-  - Solar panel watts are based on average 4 sun hours/day and 15% system losses.
-  - Breaker and SCC sizes reflect standard components and avoid oversizing.
-`;
+</html>
