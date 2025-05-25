@@ -4,20 +4,32 @@
   <meta charset="UTF-8" />
   <title>Smart Solar Setup Calculator</title>
   <style>
-    body { font-family: Arial; padding: 20px; max-width: 750px; margin: auto; }
-    input, select { width: 100%; padding: 8px; margin: 10px 0; }
-    button { padding: 10px 20px; margin-top: 15px; cursor: pointer; }
-    button:hover { background-color: #007BFF; color: white; }
-    .results { background: #eef; padding: 15px; border-radius: 8px; margin-top: 20px; white-space: pre-line; }
-    .mode-section { display: none; margin-top: 10px; }
-        body {
+    :root {
+      --text-color: #000;
+      --bg-color: #f0f8ff;
+      --card-bg: #eef;
+    }
+
+    body.dark {
+      --text-color: #fff;
+      --bg-color: #1a1a1a;
+      --card-bg: #2a2a2a;
+    }
+
+    body {
       font-family: Arial;
       padding: 20px;
       max-width: 750px;
       margin: auto;
-      animation: backgroundShift 30s ease-in-out infinite;
+      color: var(--text-color);
       background: linear-gradient(-45deg, #cceeff, #e6ccff, #ffcccc, #ffffcc);
       background-size: 600% 600%;
+      animation: backgroundShift 30s ease-in-out infinite;
+      transition: background 0.5s, color 0.5s;
+    }
+
+    body.dark {
+      background: linear-gradient(-45deg, #1e1e1e, #333366, #442222, #223322);
     }
 
     @keyframes backgroundShift {
@@ -30,21 +42,26 @@
       width: 100%;
       padding: 8px;
       margin: 10px 0;
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid #ccc;
     }
 
     button {
       padding: 10px 20px;
       margin-top: 15px;
       cursor: pointer;
+      background-color: #007BFF;
+      color: white;
+      border: none;
     }
 
     button:hover {
-      background-color: #007BFF;
-      color: white;
+      background-color: #0056b3;
     }
 
     .results {
-      background: #eef;
+      background: var(--card-bg);
       padding: 15px;
       border-radius: 8px;
       margin-top: 20px;
@@ -55,9 +72,28 @@
       display: none;
       margin-top: 10px;
     }
+
+    #toggleModeBtn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      background-color: #555;
+      color: white;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    #toggleModeBtn:hover {
+      background-color: #333;
+    }
   </style>
 </head>
 <body>
+  <button id="toggleModeBtn" onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
+
   <h2>🔋 Smart Solar Setup Calculator</h2>
 
   <label>Select Mode:</label>
