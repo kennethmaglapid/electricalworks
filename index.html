@@ -1,140 +1,205 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAGLAPID Load Calculator</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-            color: white; text-align: center; padding: 20px;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px; border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-            width: 90%; max-width: 600px; margin: auto;
-        }
-        input, select, button {
-            width: 100%; padding: 10px; margin: 10px 0;
-            border: none; border-radius: 5px; font-size: 16px;
-        }
-        select, input { background: white; color: black; }
-        button {
-            background-color: #ff9800; color: white;
-            cursor: pointer; font-weight: bold;
-        }
-        button:hover { background-color: #e68900; }
-        .result {
-            margin-top: 20px; padding: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
-        }
-        h1 { font-size: 2em; margin-bottom: 10px; }
-        img { max-width: 100%; border-radius: 5px; margin-top: 10px; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Smart Solar Setup Calculator</title>
+  <style>
+    body { font-family: Arial; padding: 20px; max-width: 750px; margin: auto; }
+    input, select { width: 100%; padding: 8px; margin: 10px 0; }
+    button { padding: 10px 20px; margin-top: 15px; cursor: pointer; }
+    button:hover { background-color: #007BFF; color: white; }
+    .results { background: #eef; padding: 15px; border-radius: 8px; margin-top: 20px; white-space: pre-line; }
+    .mode-section { display: none; margin-top: 10px; }
+  </style>
 </head>
 <body>
-    <h1>MAGLAPID Load Calculator</h1>
-    <div class="container">
-        <label for="loadType">Select Load Type:</label>
-        <select id="loadType" onchange="showMotorControlOptions()">
-            <option value="">-- Select Load Type --</option>
-            <option value="lighting">Lighting</option>
-            <option value="outlet">Outlet</option>
-            <option value="appliance">Appliance</option>
-            <option value="motor">Motor</option>
-            <option value="hvac">HVAC System</option>
-            <option value="data_center">Data Center</option>
-            <option value="ev">EV Charger</option>
-            <option value="industrial">Industrial Equipment</option>
-        </select>
-        
-        <div id="motorControlOptions" style="display: none;">
-            <label for="motorControl">Select Motor Control Type:</label>
-            <select id="motorControl">
-                <option value="">-- Select Control Type --</option>
-                <option value="dol">Direct-On-Line (DOL)</option>
-                <option value="star_delta">Star-Delta</option>
-                <option value="forward_reverse">Forward-Reverse</option>
-            </select>
-        </div>
-        
-        <label for="voltage">Select Voltage:</label>
-        <select id="voltage">
-            <option value="">-- Select Voltage --</option>
-            <option value="110">110V</option>
-            <option value="230">230V</option>
-            <option value="440">440V</option>
-        </select>
+  <h2>🔋 Smart Solar Setup Calculator</h2>
 
-        <label for="powerFactor">Select Power Factor (For Motors/Appliances):</label>
-        <select id="powerFactor">
-            <option value="">-- Select Power Factor --</option>
-            <option value="1">1.0 (Resistive Load)</option>
-            <option value="0.9">0.9 (Standard)</option>
-            <option value="0.8">0.8 (Inductive Load)</option>
-        </select>
-        
-        <label for="loadWatts">Enter Load in Watts:</label>
-        <input type="number" id="loadWatts" placeholder="Enter watts">
-        
-        <label for="hoursUsage">Enter Hours of Usage:</label>
-        <input type="number" id="hoursUsage" placeholder="Enter hours">
-        
-        <label for="material">Select Conductor Material:</label>
-        <select id="material">
-            <option value="">-- Select Material --</option>
-            <option value="copper">Copper</option>
-            <option value="aluminum">Aluminum</option>
-        </select>
-        
-        <label for="energyRate">Energy Cost per kWh (₱):</label>
-        <input type="number" id="energyRate" placeholder="Enter cost per kWh">
-        
-        <button onclick="calculate()">Calculate</button>
-        <button onclick="restart()">Restart</button>
-        
-        <div id="result" class="result"></div>
-        <div id="motorWiring" class="result"></div>
-    </div>
-    
-    <script>
-        function showMotorControlOptions() {
-            let loadType = document.getElementById("loadType").value;
-            let motorControlOptions = document.getElementById("motorControlOptions");
-            motorControlOptions.style.display = loadType === "motor" ? "block" : "none";
+  <label>Select Mode:</label>
+  <select id="mode" onchange="toggleMode()">
+    <option value="design">🔧 Design Full System</option>
+    <option value="haveBattery">🔋 I Have a Battery</option>
+  </select>
+
+  <!-- Full Design Section -->
+  <div id="designMode" class="mode-section">
+    <label>Battery Capacity (Ah):</label>
+    <input type="number" id="batteryAh" placeholder="e.g. 65" />
+
+    <label>Load Wattage (W):</label>
+    <input type="number" id="loadWatts" placeholder="e.g. 100" />
+
+    <label>Usage Hours per Day:</label>
+    <input type="number" id="hoursPerDay" placeholder="e.g. 8" />
+  </div>
+
+  <!-- I Have Battery Section -->
+  <div id="batteryMode" class="mode-section">
+    <label>Battery Capacity (Ah):</label>
+    <input type="number" id="haveBatteryAh" placeholder="e.g. 100" />
+
+    <label>Load Wattage (W):</label>
+    <input type="number" id="haveLoadWatts" placeholder="e.g. 80" />
+
+    <label>Usage Hours per Day:</label>
+    <input type="number" id="haveHours" placeholder="e.g. 6" />
+  </div>
+
+  <label>System Voltage:</label>
+  <select id="systemVoltage">
+    <option value="12">12V</option>
+    <option value="24">24V</option>
+    <option value="48">48V</option>
+  </select>
+
+  <label>Load Type:</label>
+  <select id="loadType">
+    <option value="DC">DC (direct from battery)</option>
+    <option value="AC">AC (via inverter)</option>
+  </select>
+
+  <button onclick="calculate()">Calculate</button>
+
+  <div class="results" id="results"></div>
+
+  <script>
+    function toggleMode() {
+      const mode = document.getElementById('mode').value;
+      document.getElementById('designMode').style.display = mode === 'design' ? 'block' : 'none';
+      document.getElementById('batteryMode').style.display = mode === 'haveBattery' ? 'block' : 'none';
+      document.getElementById('results').innerHTML = "";
+    }
+
+    function formatTime(hoursDecimal) {
+      if (isNaN(hoursDecimal) || hoursDecimal <= 0) return "0 seconds";
+      const totalSeconds = Math.floor(hoursDecimal * 3600);
+      const hrs = Math.floor(totalSeconds / 3600);
+      const mins = Math.floor((totalSeconds % 3600) / 60);
+      const secs = totalSeconds % 60;
+      let result = "";
+      if (hrs > 0) result += `${hrs} hour${hrs > 1 ? "s" : ""} `;
+      if (mins > 0) result += `${mins} minute${mins > 1 ? "s" : ""} `;
+      if (secs > 0) result += `${secs} second${secs > 1 ? "s" : ""}`;
+      return result.trim();
+    }
+
+    function calculate() {
+      const mode = document.getElementById('mode').value;
+      const voltage = parseInt(document.getElementById('systemVoltage').value);
+      const loadType = document.getElementById('loadType').value;
+      let resultHTML = "";
+
+      if (mode === 'design') {
+        const batteryAh = parseFloat(document.getElementById('batteryAh').value);
+        const load = parseFloat(document.getElementById('loadWatts').value);
+        const hours = parseFloat(document.getElementById('hoursPerDay').value);
+
+        if (!batteryAh || !load || !hours) {
+          alert("Please fill all fields with valid numbers.");
+          return;
         }
 
-        function calculate() {
-            let motorControl = document.getElementById("motorControl").value;
-            let motorWiring = "";
-            
-            if (motorControl === "dol") {
-                motorWiring = `<h3>Direct-On-Line (DOL) Wiring</h3>
-                               <p>Use a simple contactor and overload relay with a start/stop push button.</p>
-                               <img src='dol_wiring.png' alt='DOL Wiring Diagram'>`;
-            } else if (motorControl === "star_delta") {
-                motorWiring = `<h3>Star-Delta Wiring</h3>
-                               <p>Requires three contactors and a timer for switching between star and delta.</p>
-                               <img src='star_delta_wiring.png' alt='Star-Delta Wiring Diagram'>`;
-            } else if (motorControl === "forward_reverse") {
-                motorWiring = `<h3>Forward-Reverse Wiring</h3>
-                               <p>Uses two contactors with interlocking for reversing motor direction.</p>
-                               <img src='forward_reverse_wiring.png' alt='Forward-Reverse Wiring Diagram'>`;
-            }
-            
-            document.getElementById("motorWiring").innerHTML = motorWiring;
+        const energyNeeded = load * hours; // Wh
+        const usableBatteryWh = batteryAh * voltage * 0.8; // 80% usable
+        const batteryRuntimeHours = usableBatteryWh / load;
+        const batteryRuntimeFormatted = formatTime(batteryRuntimeHours);
+
+        const batteryAhRequired = Math.ceil(energyNeeded / voltage / 0.8);
+        const solarWatts = Math.ceil(energyNeeded / 4 * 1.2); // 4 sun hours, 20% loss
+        const controllerAmps = Math.ceil(solarWatts / voltage * 1.25); // 25% safety margin
+
+        let breakerAmps = 0;
+        let breakerType = "";
+
+        if (loadType === "DC") {
+          const dcAmps = load / voltage;
+          breakerAmps = Math.ceil(dcAmps * 1.25);
+          breakerType = getDCBreaker(breakerAmps);
+        } else {
+          const acVolts = 220;
+          const acAmps = load / acVolts;
+          breakerAmps = Math.ceil(acAmps * 1.25);
+          breakerType = getACBreaker(breakerAmps);
         }
-        
-        function restart() {
-            document.querySelectorAll("input, select").forEach(el => el.value = "");
-            document.getElementById("result").innerHTML = "";
-            document.getElementById("motorWiring").innerHTML = "";
-            document.getElementById("motorControlOptions").style.display = "none";
+
+        const batteryType = batteryAhRequired > 200 ? "LiFePO4 or Gel" : "AGM or Lead-Acid";
+
+        resultHTML = `
+          🔋 Battery Needed: ${batteryAhRequired}Ah (${batteryType}) at ${voltage}V
+          ☀️ Solar Panel: ${solarWatts}W minimum
+          ⚡ Charge Controller: ${controllerAmps}A MPPT/PWM
+          🧯 Breaker: ${breakerType}
+
+          Your ${batteryAh}Ah battery can power ${load}W for approximately ${batteryRuntimeFormatted}.
+        `;
+      }
+
+      else if (mode === 'haveBattery') {
+        const batteryAh = parseFloat(document.getElementById('haveBatteryAh').value);
+        const load = parseFloat(document.getElementById('haveLoadWatts').value);
+        const hours = parseFloat(document.getElementById('haveHours').value);
+
+        if (!batteryAh || !load || !hours) {
+          alert("Please fill all fields with valid numbers.");
+          return;
         }
-    </script>
+
+        const usableBatteryWh = batteryAh * voltage * 0.8;
+        const runtimeHours = usableBatteryWh / load;
+        const runtimeFormatted = formatTime(runtimeHours);
+
+        const energyNeeded = load * hours; // Wh
+        const solarWatts = Math.ceil(energyNeeded / 4 * 1.2);
+        const controllerAmps = Math.ceil(solarWatts / voltage * 1.25);
+
+        let breakerAmps = 0;
+        let breakerType = "";
+
+        if (loadType === "DC") {
+          const dcAmps = load / voltage;
+          breakerAmps = Math.ceil(dcAmps * 1.25);
+          breakerType = getDCBreaker(breakerAmps);
+        } else {
+          const acVolts = 220;
+          const acAmps = load / acVolts;
+          breakerAmps = Math.ceil(acAmps * 1.25);
+          breakerType = getACBreaker(breakerAmps);
+        }
+
+        const batteryType = batteryAh > 200 ? "LiFePO4 or Gel" : "AGM or Lead-Acid";
+
+        resultHTML = `
+          🔋 Battery You Have: ${batteryAh}Ah (${batteryType}) at ${voltage}V
+          🕒 Estimated Runtime: ${runtimeFormatted} for ${load}W
+
+          ☀️ Recommended Solar Panel: ${solarWatts}W minimum
+          ⚡ Recommended Charge Controller: ${controllerAmps}A MPPT/PWM
+          🧯 Recommended Breaker: ${breakerType}
+        `;
+      }
+
+      document.getElementById("results").innerText = resultHTML;
+    }
+
+    // Suggest realistic DC breaker sizes available in shops
+    function getDCBreaker(amps) {
+      const sizes = [5,10,15,20,25,30,40,50,60,70,80,90,100];
+      for (let size of sizes) {
+        if (amps <= size) return `DC Circuit Breaker (${size}A)`;
+      }
+      return `DC Circuit Breaker (${amps}A) - Custom Size`;
+    }
+
+    // Suggest realistic AC breaker sizes available in shops (common MCB ratings)
+    function getACBreaker(amps) {
+      const sizes = [6,10,13,16,20,25,32,40,50,63,80,100];
+      for (let size of sizes) {
+        if (amps <= size) return `AC Circuit Breaker (${size}A)`;
+      }
+      return `AC Circuit Breaker (${amps}A) - Custom Size`;
+    }
+
+    toggleMode(); // Show default mode
+  </script>
 </body>
 </html>
