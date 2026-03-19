@@ -318,7 +318,7 @@ const solarCurrent = solar / V;
 ⚡ Charge Controller (Solar): ${ctrl}A
 🔌 Inverter: ${inverterSize(load)}
 
-📏 Wire Size: ${wireSize(current, distance)}
+📏 wireSize(current, distance, V)
 📏 Distance: ${distance} m
 ⚡ Current: ${current.toFixed(2)} A
 
@@ -595,17 +595,17 @@ const breaker = current * 1.25;
 }
 
 function wireSize(current, distance) {
-  const voltageDrop = 0.03;
 
-  let mm2 = (2 * distance * current) / (56 * voltageDrop);
+  let factor = distance / 5; // normalize distance
 
-  if (mm2 <= 1.5) return "1.5 mm² (15 AWG)";
-  if (mm2 <= 2.5) return "2.5 mm² (13 AWG)";
-  if (mm2 <= 4) return "4 mm² (11 AWG)";
-  if (mm2 <= 6) return "6 mm² (9 AWG)";
-  if (mm2 <= 10) return "10 mm² (7 AWG)";
-  if (mm2 <= 16) return "16 mm² (5 AWG)";
-  return "25 mm² (3 AWG)+";
+  let adjustedCurrent = current * factor;
+
+  if (adjustedCurrent <= 10) return "2.5 mm² (14 AWG)";
+  if (adjustedCurrent <= 15) return "3.5 mm² (12 AWG)";
+  if (adjustedCurrent <= 25) return "6 mm² (10 AWG)";
+  if (adjustedCurrent <= 40) return "10 mm² (7 AWG)";
+  if (adjustedCurrent <= 60) return "16 mm² (5 AWG)";
+  return "25 mm² (3 AWG)";
 }
 
 function inverterSize(load) {
