@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -66,11 +67,13 @@ button:hover { background:#00a844; }
   <div class="results" id="results"></div>
 </div>
 
+<!-- Firebase Scripts -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js"></script>
 
 <script>
-  // DARK MODE
+  // ==================== THEME (LIGHT/DARK) ====================
   window.onload = function () {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "light") {
@@ -90,7 +93,7 @@ button:hover { background:#00a844; }
     }
   }
 
-  // MODES
+  // ==================== MODES ====================
   let mode = "design";
   function setMode(m) {
     mode = m;
@@ -113,7 +116,7 @@ button:hover { background:#00a844; }
     `;
   }
 
-  // CALCULATOR
+  // ==================== CALCULATOR ====================
   function calculate() {
     const V = parseFloat(document.getElementById("voltage").value);
     const batteryType = document.getElementById("batteryType").value;
@@ -186,7 +189,7 @@ Your battery runs ≈ ${runtime.toFixed(1)} hrs
 
   setMode("design");
 
-  // FIREBASE CONFIG
+  // ==================== FIREBASE CONFIG ====================
   const firebaseConfig = {
     apiKey: "AIzaSyDHIjD-VVxdee3G8mVAix_rKnZ-uH-428Y",
     authDomain: "views-7f735.firebaseapp.com",
@@ -199,18 +202,22 @@ Your battery runs ≈ ${runtime.toFixed(1)} hrs
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
+  const functions = firebase.functions();
 
-  // ✅ UNIQUE VISITOR TRACKING
+  // ==================== SECURE VIEW COUNTER ====================
   let userId = localStorage.getItem("userId");
   if (!userId) {
     userId = "user_" + Math.random().toString(36).substr(2,9);
     localStorage.setItem("userId", userId);
 
-    // Increment counter only once per visitor
-    db.ref("views").transaction((current) => (current || 0) + 1);
+    // Call Cloud Function to increment view safely
+    const incrementView = functions.httpsCallable("incrementView");
+    incrementView({ userId })
+      .then(res => console.log("View counted:", res.data))
+      .catch(err => console.error(err));
   }
 
-  // LIVE VIEW COUNTER
+  // Live total views
   db.ref("views").on("value", (snapshot) => {
     document.getElementById("viewCounter").innerText =
       "Views: " + (snapshot.val() || 0);
