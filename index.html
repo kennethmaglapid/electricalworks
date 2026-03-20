@@ -144,8 +144,11 @@ button:hover {
 
   <div class="results" id="results"></div>
 </div>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
 
 <script>
+    
 // DARK MODE TOGGLE (unchanged)
 window.onload = function () {
   const savedTheme = localStorage.getItem("theme");
@@ -291,19 +294,39 @@ function nearest(a){
 
 // INIT
 setMode("design");
-// VIEW COUNTER (counts once per device, no refresh spam)
-let views = localStorage.getItem("viewsCount");
+// 🔥 FIREBASE CONFIG (YOURS)
+const firebaseConfig = {
+  apiKey: "AIzaSyDHIjD-VVxdee3G8mVAix_rKnZ-uH-428Y",
+  authDomain: "views-7f735.firebaseapp.com",
+  databaseURL: "https://views-7f735-default-rtdb.firebaseio.com",
+  projectId: "views-7f735",
+  storageBucket: "views-7f735.firebasestorage.app",
+  messagingSenderId: "596752743706",
+  appId: "1:596752743706:web:e91eb138aff3aa7d31c0a3"
+};
 
-if (!localStorage.getItem("hasVisited")) {
-  views = views ? parseInt(views) + 1 : 1;
+// 🔥 INIT FIREBASE
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  localStorage.setItem("viewsCount", views);
-  localStorage.setItem("hasVisited", "true");
+// 🔥 UNIQUE USER (prevents refresh spam)
+let userId = localStorage.getItem("userId");
+
+if (!userId) {
+  userId = "user_" + Math.random().toString(36).substr(2, 9);
+  localStorage.setItem("userId", userId);
+
+  // ONLY NEW USER increments
+  db.ref("views").transaction((current) => {
+    return (current || 0) + 1;
+  });
 }
 
-// Display views
-document.getElementById("viewCounter").innerText =
-  "Views: " + (views || 1);
+// 🔥 DISPLAY LIVE COUNT
+db.ref("views").on("value", (snapshot) => {
+  document.getElementById("viewCounter").innerText =
+    "Views: " + (snapshot.val() || 0);
+});
 </script>
 
 </body>
