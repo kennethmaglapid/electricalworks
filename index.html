@@ -316,9 +316,11 @@ if (!userId) {
   userId = "user_" + Math.random().toString(36).substr(2, 9);
   localStorage.setItem("userId", userId);
 
-  // ONLY NEW USER increments
-  db.ref("views").transaction((current) => {
-    return (current || 0) + 1;
+  const ref = db.ref("views");
+
+  ref.transaction((current) => {
+    if (current === null) return 1;
+    return current + 1;
   });
 }
 
