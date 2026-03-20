@@ -1,4 +1,3 @@
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -106,10 +105,9 @@ button:hover {
 
 <div class="container">
   <div style="position:absolute; top:10px; right:20px; font-size:14px;">
-  <span id="viewCounter">Views: 0</span>
-</div>  
+    <span id="viewCounter">Views: 0</span>
+  </div>  
   
-</div>
   <div style="text-align:right; margin-bottom:10px;">
     <button onclick="toggleTheme()" id="themeBtn">🌙 Dark</button>
   </div>
@@ -144,103 +142,86 @@ button:hover {
 
   <div class="results" id="results"></div>
 </div>
+
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
 
 <script>
-    
-// DARK MODE TOGGLE (unchanged)
-window.onload = function () {
-  const savedTheme = localStorage.getItem("theme");
-  if (savedTheme === "light") {
-    document.body.classList.add("light");
-    document.getElementById("themeBtn").innerText = "☀️ Light";
+  // DARK MODE TOGGLE
+  window.onload = function () {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "light") {
+      document.body.classList.add("light");
+      document.getElementById("themeBtn").innerText = "☀️ Light";
+    }
+  };
+
+  function toggleTheme() {
+    document.body.classList.toggle("light");
+    const btn = document.getElementById("themeBtn");
+    if (document.body.classList.contains("light")) {
+      btn.innerText = "☀️ Light";
+      localStorage.setItem("theme", "light");
+    } else {
+      btn.innerText = "🌙 Dark";
+      localStorage.setItem("theme", "dark");
+    }
   }
-};
 
-function toggleTheme() {
-  document.body.classList.toggle("light");
-  const btn = document.getElementById("themeBtn");
-  if (document.body.classList.contains("light")) {
-    btn.innerText = "☀️ Light";
-    localStorage.setItem("theme", "light");
-  } else {
-    btn.innerText = "🌙 Dark";
-    localStorage.setItem("theme", "dark");
+  // MODES
+  let mode = "design";
+  function setMode(m) {
+    mode = m;
+    document.querySelectorAll(".mode-buttons button").forEach(b => b.classList.remove("active"));
+    document.getElementById("btn" + capitalize(m)).classList.add("active");
+    renderInputs();
+    document.getElementById("results").innerText = "";
   }
-}
 
-// MODES
-let mode = "design";
+  function capitalize(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
 
-function setMode(m) {
-  mode = m;
-  document.querySelectorAll(".mode-buttons button").forEach(b => b.classList.remove("active"));
-  document.getElementById("btn" + capitalize(m)).classList.add("active");
-  renderInputs();
-  document.getElementById("results").innerText = "";
-}
+  function renderInputs() {
+    document.getElementById("inputs").innerHTML = `
+      <label>Load (W)</label>
+      <input id="load">
+      <label>Hours/day</label>
+      <input id="hours">
+      <label>Your Battery (Ah)</label>
+      <input id="battery">
+      <label>Wire Distance (meters)</label>
+      <input id="distance" placeholder="e.g. 5">
+    `;
+  }
 
-function capitalize(s) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
+  // CALCULATOR
+  function calculate() {
+    const V = parseFloat(document.getElementById("voltage").value);
+    const batteryType = document.getElementById("batteryType").value;
+    const panelWatt = parseFloat(document.getElementById("panelWatt").value) || 470;
 
-function renderInputs() {
-  document.getElementById("inputs").innerHTML = `
-    <label>Load (W)</label>
-    <input id="load">
-    <label>Hours/day</label>
-    <input id="hours">
-    <label>Your Battery (Ah)</label>
-    <input id="battery">
-    <label>Wire Distance (meters)</label>
-    <input id="distance" placeholder="e.g. 5">
-  `;
-}
+    const load = parseFloat(document.getElementById("load").value);
+    const hours = parseFloat(document.getElementById("hours").value);
+    const batt = parseFloat(document.getElementById("battery").value);
+    const distance = parseFloat(document.getElementById("distance").value);
 
-// ✅ FIXED CALCULATIONS
-function calculate() {
-  const V = parseFloat(document.getElementById("voltage").value);
-  const batteryType = document.getElementById("batteryType").value;
-  const panelWatt = parseFloat(document.getElementById("panelWatt").value) || 470;
+    if (!load || !hours || !batt || !distance) return alert("Fill all fields");
 
-  const load = parseFloat(document.getElementById("load").value);
-  const hours = parseFloat(document.getElementById("hours").value);
-  const batt = parseFloat(document.getElementById("battery").value);
-  const distance = parseFloat(document.getElementById("distance").value);
+    const sunHours = 4.5;
+    const systemLoss = 1.3;
+    const dod = batteryType === "lifepo4" ? 0.9 : 0.5;
+    const Wh = load * hours;
+    const solar = Math.ceil((Wh * systemLoss) / sunHours);
+    const panels = Math.ceil(solar / panelWatt);
+    const battNeed = Math.ceil(Wh / (V * dod));
+    const controller = Math.ceil((solar / V) * 1.25);
+    const current = load / V;
+    const solarBreaker = nearest((solar / V) * 1.25);
+    const batteryBreaker = nearest((load / V) * 2);
+    const runtime = (batt * V * dod) / load;
 
-  if (!load || !hours || !batt || !distance) return alert("Fill all fields");
-
-  // ✅ REAL VALUES
-  const sunHours = 4.5; // Philippines average
-  const systemLoss = 1.3; // 30% losses
-  const dod = batteryType === "lifepo4" ? 0.9 : 0.5;
-
-  const Wh = load * hours;
-
-  // ✅ SOLAR (FIXED)
-  const solar = Math.ceil((Wh * systemLoss) / sunHours);
-
-  // ✅ PANELS
-  const panels = Math.ceil(solar / panelWatt);
-
-  // ✅ BATTERY (FIXED)
-  const battNeed = Math.ceil(Wh / (V * dod));
-
-  // ✅ CONTROLLER (FIXED)
-  const controller = Math.ceil((solar / V) * 1.25);
-
-  // ✅ CURRENT
-  const current = load / V;
-
-  // ✅ BREAKERS (FIXED)
-  const solarBreaker = nearest((solar / V) * 1.25);
-  const batteryBreaker = nearest((load / V) * 2); // surge safe
-
-  // ✅ RUNTIME (FIXED)
-  const runtime = (batt * V * dod) / load;
-
-  let result = `
+    let result = `
 🔋 Battery Needed: ${battNeed}Ah (${batteryType.toUpperCase()})
 ☀️ Solar Needed: ${solar}W
 🔢 Panels Needed: ${panels} pcs (${panelWatt}W each)
@@ -258,79 +239,63 @@ function calculate() {
 Your battery runs ≈ ${runtime.toFixed(1)} hrs
 `;
 
-  document.getElementById("results").innerText = result;
-}
-
-// ✅ IMPROVED WIRE CALC
-function wireSize(current, distance) {
-  const dropFactor = distance / 10;
-
-  if (current * dropFactor <= 10) return "2.5 mm² (14 AWG)";
-  if (current * dropFactor <= 20) return "4 mm² (12 AWG)";
-  if (current * dropFactor <= 30) return "6 mm² (10 AWG)";
-  if (current * dropFactor <= 50) return "10 mm² (7 AWG)";
-  return "16 mm² (5 AWG)";
-}
-
-// ✅ BETTER INVERTER HEADROOM
-function inverterSize(load) {
-  let size = load * 1.5;
-
-  if (size <= 300) return "300W";
-  if (size <= 500) return "500W";
-  if (size <= 1000) return "1000W";
-  if (size <= 1500) return "1500W";
-  return Math.ceil(size / 500) * 500 + "W";
-}
-
-// BREAKER SIZES
-function nearest(a){
-  const sizes=[10,15,20,25,30,40,50,60,80,100,125];
-  for(let s of sizes){
-    if(a<=s) return s+"A";
+    document.getElementById("results").innerText = result;
   }
-  return "125A+";
-}
 
-// INIT
-setMode("design");
-// 🔥 FIREBASE CONFIG (YOURS)
-const firebaseConfig = {
-  apiKey: "AIzaSyDHIjD-VVxdee3G8mVAix_rKnZ-uH-428Y",
-  authDomain: "views-7f735.firebaseapp.com",
-  databaseURL: "https://views-7f735-default-rtdb.firebaseio.com",
-  projectId: "views-7f735",
-  storageBucket: "views-7f735.firebasestorage.app",
-  messagingSenderId: "596752743706",
-  appId: "1:596752743706:web:e91eb138aff3aa7d31c0a3"
-};
+  function wireSize(current, distance) {
+    const dropFactor = distance / 10;
+    if (current * dropFactor <= 10) return "2.5 mm² (14 AWG)";
+    if (current * dropFactor <= 20) return "4 mm² (12 AWG)";
+    if (current * dropFactor <= 30) return "6 mm² (10 AWG)";
+    if (current * dropFactor <= 50) return "10 mm² (7 AWG)";
+    return "16 mm² (5 AWG)";
+  }
 
-// 🔥 INIT FIREBASE
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+  function inverterSize(load) {
+    let size = load * 1.5;
+    if (size <= 300) return "300W";
+    if (size <= 500) return "500W";
+    if (size <= 1000) return "1000W";
+    if (size <= 1500) return "1500W";
+    return Math.ceil(size / 500) * 500 + "W";
+  }
 
-// 🔥 UNIQUE USER (prevents refresh spam)
-let userId = localStorage.getItem("userId");
+  function nearest(a){
+    const sizes=[10,15,20,25,30,40,50,60,80,100,125];
+    for(let s of sizes){
+      if(a<=s) return s+"A";
+    }
+    return "125A+";
+  }
 
-if (!userId) {
-  userId = "user_" + Math.random().toString(36).substr(2, 9);
-  localStorage.setItem("userId", userId);
+  setMode("design");
 
-  const ref = db.ref("views");
+  // 🔥 FIREBASE CONFIG
+  const firebaseConfig = {
+    apiKey: "AIzaSyDHIjD-VVxdee3G8mVAix_rKnZ-uH-428Y",
+    authDomain: "views-7f735.firebaseapp.com",
+    databaseURL: "https://views-7f735-default-rtdb.firebaseio.com",
+    projectId: "views-7f735",
+    storageBucket: "views-7f735.firebasestorage.app",
+    messagingSenderId: "596752743706",
+    appId: "1:596752743706:web:e91eb138aff3aa7d31c0a3"
+  };
 
-  ref.transaction((current) => {
-    if (current === null) return 1;
-    return current + 1;
+  // 🔥 INIT FIREBASE
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // ✅ INCREMENT VIEW ON EVERY VISITOR
+  db.ref("views").transaction((current) => {
+    return (current || 0) + 1;
   });
-}
 
-// 🔥 DISPLAY LIVE COUNT
-db.ref("views").on("value", (snapshot) => {
-  document.getElementById("viewCounter").innerText =
-    "Views: " + (snapshot.val() || 0);
-});
+  // DISPLAY LIVE COUNT
+  db.ref("views").on("value", (snapshot) => {
+    document.getElementById("viewCounter").innerText =
+      "Views: " + (snapshot.val() || 0);
+  });
 </script>
 
 </body>
 </html>
- 
