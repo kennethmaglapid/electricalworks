@@ -1,4 +1,4 @@
-Put your HTML<!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -105,11 +105,10 @@ button:hover {
 <body>
 
 <div class="container">
-    
-    <div style="position:absolute; top:10px; right:20px; font-size:14px;">
-
- <img src="https://api.visitorbadge.io/api/visitors?path=kenneth-solar-calculator&label=Views&countColor=%2300c853" />
-
+  <div style="position:absolute; top:10px; right:20px; font-size:14px;">
+  <span id="viewCounter">Views: 0</span>
+</div>  
+  
 </div>
   <div style="text-align:right; margin-bottom:10px;">
     <button onclick="toggleTheme()" id="themeBtn">🌙 Dark</button>
@@ -292,6 +291,19 @@ function nearest(a){
 
 // INIT
 setMode("design");
+// VIEW COUNTER (counts once per device, no refresh spam)
+let views = localStorage.getItem("viewsCount");
+
+if (!localStorage.getItem("hasVisited")) {
+  views = views ? parseInt(views) + 1 : 1;
+
+  localStorage.setItem("viewsCount", views);
+  localStorage.setItem("hasVisited", "true");
+}
+
+// Display views
+document.getElementById("viewCounter").innerText =
+  "Views: " + (views || 1);
 </script>
 
 </body>
