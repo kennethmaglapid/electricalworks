@@ -192,11 +192,11 @@ if (!isNaN(breakerValue) && batteryCurrentWithMargin > breakerValue) {
 // Use panel Isc approximation: panelWatt / 12V for 12V panels (or adjust for actual panel Voc/Isc if known)
 const panelIsc = panelWatt / panelNominalVoltage;
 function realisticSolarBreaker(a){
-  const standard = [5,10,15,20,25,30,35,40,50,60];
+const standard = [5,10,15,20,25,30,35,40,50,60,70,80,100];
   for(let s of standard){
     if(a <= s) return s + "A";
   }
-  return "60A+";
+  return "80A+";
 }
 const solarBreaker = realisticSolarBreaker(Math.ceil(panelIsc * 1.25));
 
@@ -246,9 +246,9 @@ if (V === 12) {
   solarBreakerDisplay = solarBreakerDisplay.replace(/⚠️.*Current exceeds breaker rating/g, "");
 
   // Only show warning if current is dangerously high, e.g., above 40A
-  if (!isNaN(solarBreakerValue) && actualCurrentWithMargin > solarBreakerValue && solarBreakerValue >= 40) {
-    voltageSuggestion += `💡 Warning: Your 12V system's solar current (${totalPanelCurrent.toFixed(1)}A) exceeds your breaker (${solarBreaker}). Consider using 24V system.\n`;
-    solarBreakerDisplay += " ⚠️ <span style='color:#ff1744;'>Current exceeds breaker rating</span>";
+  if (!isNaN(solarBreakerValue) && solarBreakerValue >= 80 && V === 12) {
+    voltageSuggestion += `⚠️ WARNING: Solar breaker reached ${solarBreaker}. This is too high for a 12V system. Upgrade to 24V or 48V.\n`;
+solarBreakerDisplay += " ⚠️ <span style='color:#ff1744;'>80A LIMIT REACHED</span>";
   }
 } else {
   // 24V / 48V systems
