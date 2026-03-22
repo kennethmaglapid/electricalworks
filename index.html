@@ -124,6 +124,7 @@ button:hover { background:#00a844; }
 
 
 // ==================== CALCULATOR ====================
+
 function calculate() {
   const V = parseFloat(document.getElementById("voltage").value);
   const batteryType = document.getElementById("batteryType").value;
@@ -138,88 +139,61 @@ function calculate() {
     return alert("Fill all fields correctly");
   }
 
-  // Constants
+  // ------------------- CONSTANTS -------------------
   const sunHours = 4.5;
   const systemLoss = 1.3;
   const dod = batteryType === "lifepo4" ? 0.9 : 0.5;
   const battEfficiency = batteryType === "lifepo4" ? 0.95 : 0.85;
+  const inverterEff = 0.9;
   const Wh = load * hours;
 
-  // Solar requirement
-  const solar = Math.ceil((Wh * systemLoss) / sunHours);
+  // ------------------- SOLAR REQUIREMENT -------------------
+  const solar = Math.ceil((Wh * systemLoss) / sunHours);  // minimum watts needed
+  const solarMinCurrent = solar / V;                     // I = P / V
+  const solarMinCurrentWithMargin = solarMinCurrent * 1.25; // 25% safety margin
 
-  // Panel configuration
-  const panelNominalVoltage = 12;
-  const panelsInSeries = V > 12 ? Math.ceil(V / panelNominalVoltage) : 1;
-  const panelsParallel = Math.ceil(solar / (panelWatt * panelsInSeries));
-  const totalPanels = panelsInSeries * panelsParallel;
-
-  // Currents and wires
-  const stringVoltage = panelNominalVoltage * panelsInSeries;
-  const panelCurrentPerString = panelWatt / stringVoltage;
-  const totalPanelCurrent = panelCurrentPerString * panelsParallel;
-  const solarWire = wireSize(totalPanelCurrent, solarDistance);
- 
-  const inverterW = parseFloat(inverterSize(load).replace("W",""));
-  const batteryCurrent = inverterW / V;
-  const batteryWire = wireSize(batteryCurrent, batteryDistance);
-  const inverterEff = 0.9;
-  // Breakers
-  // ---- REALISTIC BATTERY / LOAD BREAKER ----
-const batteryCurrentActual = load / (V * inverterEff);
-function realisticBatteryBreaker(a){
-  const standard = [5,10,15,20,25,30,35,40,50,60,70,80,100];
-  for(let s of standard){
-    if(a <= s) return s + "A";
+  // ------------------- PANEL LAYOUT -------------------
+  let panelsInSeries, panelsParallel, totalPanels, panelLayout;
+  if (V === 12) {
+    panelsInSeries = 1;
+    panelsParallel = Math.ceil(solar / panelWatt);
+    totalPanels = panelsInSeries * panelsParallel;
+    panelLayout = `Connection: Parallel | Total panels: ${totalPanels}`;
+  } else {
+    panelsInSeries = Math.ceil(V / 12);
+    panelsParallel = Math.ceil(solar / (panelWatt * panelsInSeries));
+    totalPanels = panelsInSeries * panelsParallel;
+    panelLayout = `Series per string: ${panelsInSeries}, Parallel strings: ${panelsParallel}, Total panels: ${totalPanels}`;
   }
-  return "100A+";
-}
-  // Voltage suggestion
-  let voltageSuggestion = "";
-// ---- REALISTIC BATTERY BREAKER WARNING ----
-const batteryBreaker = realisticBatteryBreaker(Math.ceil(batteryCurrentActual * 1.25));
-const batteryCurrentWithMargin = batteryCurrentActual * 1.25; // 25% safety margin
-const breakerValue = parseInt(batteryBreaker); // numeric breaker value
 
-// Clear previous battery warning (if any)
-voltageSuggestion = voltageSuggestion.replace(/💡 Warning: Battery current.*\n?/g, "");
-
-// Only show warning if actual current exceeds breaker
-if (!isNaN(breakerValue) && batteryCurrentWithMargin > breakerValue) {
-  voltageSuggestion += `💡 Warning: Battery current (${batteryCurrentWithMargin.toFixed(1)}A) exceeds breaker (${batteryBreaker}).\n`;
-}
-const solarCurrentMin = solar / sunHours / V; // solar = Wh * systemLoss
-
-// Realistic breaker from standard sizes
-function nearestBreaker(a){
-  const standard = [5,10,15,20,25,30,35,40,50,60,70,80,100];
-  for(let s of standard){
-    if(a <= s) return s + "A";
+  // ------------------- SOLAR BREAKER -------------------
+  function nearestStandardBreaker(a){
+    const standard = [5,10,15,20,25,30,35,40,50,60,70,80,100];
+    for(let s of standard){
+      if(a <= s) return s + "A";
+    }
+    return "100A+";
   }
-  return "100A+";
-}
-let solarBreaker = nearestBreaker(solarCurrentMin * 1.25); // 25% safety margin
 
-// 12V system warning
-let solarBreakerWarning = "";
-const solarBreakerValue = parseInt(solarBreaker);
-if(V === 12 && solarBreakerValue > 60){
-    solarBreakerWarning = `⚠️ WARNING: Solar breaker ${solarBreakerValue}A exceeds safe 12V limit. Upgrade to 24V system for higher wattage panels.`;
-    solarBreaker += " ⚠️ 60A LIMIT REACHED";
-}
-  // Battery runtime
+  let totalPanelCurrent = solar / V; // total current from solar
+  let solarBreakerDisplay = nearestStandardBreaker(totalPanelCurrent * 1.25);
+  let solarBreakerWarning = "";
 
+  if(V === 12 && totalPanelCurrent * 1.25 > 60){
+    solarBreakerWarning = `⚠️ WARNING: Total solar current (${(totalPanelCurrent*1.25).toFixed(1)}A) exceeds safe 12V limit (60A).\nUpgrade to 24V system for higher watt panels.`;
+    solarBreakerDisplay += " ⚠️ MAX 60A for 12V";
+  }
+
+  // ------------------- BATTERY -------------------
   const runtimeHours = (batt * V * dod * battEfficiency * inverterEff) / load;
   const totalSeconds = runtimeHours * 3600;
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = Math.floor(totalSeconds % 60);
 
-  // Battery requirement
   const battNeed = Math.ceil(Wh / (V * dod * battEfficiency));
   const deficitAh = battNeed - batt;
 
-  // Status
   let status = "";
   if (batt >= battNeed) {
     status = "✅ SYSTEM OK (Battery is enough)";
@@ -237,50 +211,36 @@ Short by: ${mh} hr ${mm} min`;
     ? `⏱ Your ${batt}Ah battery can run your load for:\n${h} hr ${m} min ${s} sec`
     : `⏱ Your ${batt}Ah battery will ONLY last:\n${h} hr ${m} min ${s} sec`;
 
-let panelLayout = "";
-let solarBreakerDisplay = solarBreaker;
-if (V === 12 && parseInt(solarBreaker) < totalPanelCurrent * 1.25) {
-  // show warning only if really needed
-}
-if (V === 12) {
-    panelLayout = "Connection: Parallel";
+  // ------------------- WIRE & INVERTER -------------------
+  const solarWire = wireSize(totalPanelCurrent * 1.25, solarDistance);
+  const inverterW = parseFloat(inverterSize(load).replace("W",""));
+  const batteryCurrent = inverterW / V;
+  const batteryWire = wireSize(batteryCurrent, batteryDistance);
 
-    // Total solar current (all parallel strings) with 25% safety margin
-    const actualTotalCurrent = totalPanelCurrent * 1.25;
-
-    // Max safe 12V solar current
-    const maxSafe12V = 60; // 60A max
-
-    // Determine nearest standard breaker
-    const standardBreakers = [5,10,15,20,25,30,35,40,50,60,70,80,100];
-    let nearestBreaker12V = 100;
-    for(let s of standardBreakers){
-        if(actualTotalCurrent <= s){
-            nearestBreaker12V = s;
-            break;
-        }
+  // ------------------- BATTERY BREAKER -------------------
+  const batteryCurrentActual = load / (V * inverterEff);
+  function realisticBatteryBreaker(a){
+    const standard = [5,10,15,20,25,30,35,40,50,60,70,80,100];
+    for(let s of standard){
+      if(a <= s) return s + "A";
     }
+    return "100A+";
+  }
+  const batteryBreaker = realisticBatteryBreaker(Math.ceil(batteryCurrentActual * 1.25));
+  const batteryCurrentWithMargin = batteryCurrentActual * 1.25;
+  let voltageSuggestion = "";
+  if (batteryCurrentWithMargin > parseInt(batteryBreaker)) {
+    voltageSuggestion += `💡 Warning: Battery current (${batteryCurrentWithMargin.toFixed(1)}A) exceeds breaker (${batteryBreaker}).\n`;
+  }
 
-    solarBreakerDisplay = nearestBreaker12V + "A";
+  // ------------------- CONTROLLER -------------------
+  const controller = controllerSize(totalPanelCurrent * 1.25);
 
-    // ⚠️ Add warning if current exceeds safe 12V limit
-    if(actualTotalCurrent > maxSafe12V){
-        voltageSuggestion += `⚠️ WARNING: Total solar current (${actualTotalCurrent.toFixed(1)}A) exceeds safe 12V limit (${maxSafe12V}A).\nUpgrade to 24V or 48V system for higher watt panels.\n`;
-        solarBreakerDisplay += " ⚠️ DO NOT EXCEED 60A IN 12V SETUP,UPGRADE TO 24V SET UP FOR HIGHER SOLAR WATTAGE";
-    }
-} else {
-    // 24V / 48V systems
-    panelLayout = `Series per string: ${panelsInSeries}, Parallel strings: ${panelsParallel}, Total panels: ${totalPanels}`;
-}
-  // Controller
-  const controller = controllerSize((solar / V) * 1.25);
-
-  // Render complete results
+  // ------------------- RENDER RESULTS -------------------
   let resultHTML = `
 <div style="padding:4px; line-height:1.1; font-size:12px;">
   <h3 style="text-align:center; color:#00c853; margin:2px 0 4px 0; font-size:14px;">⚡ RESULT</h3>
   ${voltageSuggestion ? `<p style="color:#ffd600; font-size:12px; margin-bottom:5px;">${voltageSuggestion}</p>` : ''}
-
   <div style="margin:0 0 2px 0; padding:3px 5px; border:1px solid #00c853; border-radius:4px; background:${document.body.classList.contains('light') ? '#e8f5e9' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
     <strong>🔋 Battery (${batteryType.toUpperCase()})</strong>
     <p style="margin:1px 0; font-size:12px;">Needed: <span style="color:#ffea00;">${battNeed}Ah</span> | Your: <span style="color:#00b0ff;">${batt}Ah</span></p>
@@ -292,7 +252,7 @@ if (V === 12) {
     <p style="margin:1px 0; font-size:12px;">Needed: <span style="color:#ffea00;">${solar} W</span> | Panels: <span style="color:#00b0ff;">${totalPanels}</span> x ${panelWatt}W</p>
     <p style="margin:1px 0; font-size:12px;">${panelLayout}</p>
     <p style="margin:1px 0; font-size:12px;">Breaker: <span style="color:#ff1744;">${solarBreakerDisplay}</span></p>
-    <p style="margin:1px 0; font-size:12px;">Wire: ${solarWire}, ${solarDistance} m, Current: ${totalPanelCurrent.toFixed(2)}A</p>
+    <p style="margin:1px 0; font-size:12px;">Wire: ${solarWire}, ${solarDistance} m, Current: ${(totalPanelCurrent*1.25).toFixed(2)}A</p>
     <p style="margin:1px 0; font-size:12px; color:#ff1744;">${solarBreakerWarning}</p>
   </div>
 
