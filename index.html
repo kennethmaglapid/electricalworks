@@ -127,7 +127,9 @@ function calculate() {
   const V = parseFloat(document.getElementById("voltage").value);
   const batteryType = document.getElementById("batteryType").value;
   const panelWatt = parseFloat(document.getElementById("panelWatt").value) || 470;
-
+// ------------------------- SERIES PANELS -------------------------
+const panelNominalVoltage = 12; // most panels are 12V nominal
+const panelsInSeries = Math.ceil(V / panelNominalVoltage); // e.g., 12V=1, 24V=2, 48V=4
   const load = parseFloat(document.getElementById("load").value);
   const hours = parseFloat(document.getElementById("hours").value);
   const batt = parseFloat(document.getElementById("battery").value);
@@ -145,18 +147,24 @@ function calculate() {
 
   // Solar calculation
   const solar = Math.ceil((Wh * systemLoss) / sunHours);
-  const panels = Math.ceil(solar / panelWatt);
-  const panelWattTotal = panels * panelWatt;
+  // ------------------------- PARALLEL STRINGS -------------------------
+const totalSolarWatt = solar; // solar W requirement
+const panelsParallel = Math.ceil(totalSolarWatt / (panelWatt * panelsInSeries)); 
+const totalPanels = panelsInSeries * panelsParallel;
+  const panelWattTotal = totalPanels * panelWatt;
   const battNeed = Math.ceil(Wh / (V * dod));
   const controllerRaw = (solar / V) * 1.25;
   const controller = controllerSize(controllerRaw);
   const inverterW = parseFloat(inverterSize(load).replace("W","")); 
   const batteryCurrent = inverterW / V;
-  const panelCurrent = panelWatt / V;
-  const solarWire = wireSize(panelCurrent, solarDistance);
-  const batteryWire = wireSize(batteryCurrent, batteryDistance);
-  const solarBreaker = nearest(panelCurrent * 1.25);
-  const batteryBreaker = nearest(batteryCurrent * 1.25);
+// ------------------------- PANEL CURRENT -------------------------
+const stringVoltage = panelNominalVoltage * panelsInSeries;       // Voltage per series string
+const panelCurrentPerString = panelWatt / stringVoltage;          // Current per series string
+const totalPanelCurrent = panelCurrentPerString * panelsParallel; // Total current for wires/breaker
+const solarWire = wireSize(totalPanelCurrent, solarDistance);
+const batteryWire = wireSize(batteryCurrent, batteryDistance);
+const solarBreaker = nearest(totalPanelCurrent * 1.25);
+const batteryBreaker = nearest(batteryCurrent * 1.25);
 
   const inverterEff = 0.9;
   const runtimeHours = (batt * V * dod * inverterEff) / load;
@@ -191,7 +199,7 @@ Short by: ${mh} hr ${mm} min`;
   if (V === 12 && batteryCurrent > 50) {
     voltageSuggestion = "💡 Suggestion: Your load draws high current. Consider using 24V system to reduce wire size and improve efficiency.";
   }
-
+const panelLayout = `Series per string: ${panelsInSeries}, Parallel strings: ${panelsParallel}, Total panels: ${totalPanels}`;
   let resultHTML = `
 <div style="padding:4px; line-height:1.1; font-size:12px;">
   <h3 style="text-align:center; color:#00c853; margin:2px 0 4px 0; font-size:14px;">⚡ RESULT</h3>
@@ -207,9 +215,10 @@ Short by: ${mh} hr ${mm} min`;
 
   <div style="margin:0 0 2px 0; padding:3px 5px; border:1px solid #ffd600; border-radius:4px; background:${document.body.classList.contains('light') ? '#fff8e1' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
     <strong>☀️ Solar</strong>
-    <p style="margin:1px 0; font-size:12px;">Needed: <span style="color:#ffea00;">${solar} W</span> | Panels: <span style="color:#00b0ff;">${panels}</span> x ${panelWatt}W</p>
+<p style="margin:1px 0; font-size:12px;">Needed: <span style="color:#ffea00;">${solar} W</span> | Panels: <span style="color:#00b0ff;">${totalPanels}</span> x ${panelWatt}W</p>
+<p style="margin:1px 0; font-size:12px;">Layout: ${panelLayout}</p>
     <p style="margin:1px 0; font-size:12px;">Breaker: <span style="color:#ff1744;">${solarBreaker}</span></p>
-    <p style="margin:1px 0; font-size:12px;">Wire: ${solarWire}, ${solarDistance} m, Current: ${panelCurrent.toFixed(2)}A</p>
+    <p style="margin:1px 0; font-size:12px;">Wire: ${solarWire}, ${solarDistance} m, Current: ${totalPanelCurrent.toFixed(2)}A</p>
   </div>
 
   <div style="margin:0 0 2px 0; padding:3px 5px; border:1px solid #29b6f6; border-radius:4px; background:${document.body.classList.contains('light') ? '#e1f5fe' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
