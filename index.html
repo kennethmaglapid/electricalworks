@@ -159,14 +159,46 @@ function calculate() {
   const panelCurrentPerString = panelWatt / stringVoltage;
   const totalPanelCurrent = panelCurrentPerString * panelsParallel;
   const solarWire = wireSize(totalPanelCurrent, solarDistance);
-
+ 
   const inverterW = parseFloat(inverterSize(load).replace("W",""));
   const batteryCurrent = inverterW / V;
   const batteryWire = wireSize(batteryCurrent, batteryDistance);
 
   // Breakers
-  const solarBreaker = nearest(totalPanelCurrent * 1.25);
-  const batteryBreaker = nearest(batteryCurrent * 1.25);
+  // ---- REALISTIC BATTERY / LOAD BREAKER ----
+const batteryCurrentActual = load / V; // actual load current in A
+function realisticBatteryBreaker(a){
+  const standard = [5,10,15,20,25,30,35,40,50,60,70,80,100];
+  for(let s of standard){
+    if(a <= s) return s + "A";
+  }
+  return "100A+";
+}
+  // Voltage suggestion
+  let voltageSuggestion = "";
+// ---- REALISTIC BATTERY BREAKER WARNING ----
+const batteryBreaker = realisticBatteryBreaker(Math.ceil(batteryCurrentActual * 1.25));
+const batteryCurrentWithMargin = batteryCurrentActual * 1.25; // 25% safety margin
+const breakerValue = parseInt(batteryBreaker); // numeric breaker value
+
+// Clear previous battery warning (if any)
+voltageSuggestion = voltageSuggestion.replace(/💡 Warning: Battery current.*\n?/g, "");
+
+// Only show warning if actual current exceeds breaker
+if (!isNaN(breakerValue) && batteryCurrentWithMargin > breakerValue) {
+  voltageSuggestion += `💡 Warning: Battery current (${batteryCurrentWithMargin.toFixed(1)}A) exceeds breaker (${batteryBreaker}).\n`;
+}
+// ---- REALISTIC SOLAR BREAKER ----
+// Use panel Isc approximation: panelWatt / 12V for 12V panels (or adjust for actual panel Voc/Isc if known)
+const panelIsc = panelWatt / panelNominalVoltage;
+function realisticSolarBreaker(a){
+  const standard = [5,10,15,20,25,30,35,40,50,60];
+  for(let s of standard){
+    if(a <= s) return s + "A";
+  }
+  return "60A+";
+}
+const solarBreaker = realisticSolarBreaker(Math.ceil(panelIsc * 1.25));
 
   // Battery runtime
   const inverterEff = 0.9;
@@ -198,23 +230,25 @@ Short by: ${mh} hr ${mm} min`;
     ? `⏱ Your ${batt}Ah battery can run your load for:\n${h} hr ${m} min ${s} sec`
     : `⏱ Your ${batt}Ah battery will ONLY last:\n${h} hr ${m} min ${s} sec`;
 
-  // Voltage suggestion
-  let voltageSuggestion = "";
-  if (V === 12 && batteryCurrent > 50) {
-    voltageSuggestion = "💡 Suggestion: Your load draws high current. Consider using 24V system to reduce wire size and improve efficiency.";
-  }
-
-  // Panel layout text
- // Panel layout & solar breaker for 12V safely
 let panelLayout = "";
-let solarBreakerDisplay = nearest(totalPanelCurrent * 1.25); // always show actual breaker
-
+let solarBreakerDisplay = solarBreaker;
+if (V === 12 && parseInt(solarBreaker) < totalPanelCurrent * 1.25) {
+  // show warning only if really needed
+}
 if (V === 12) {
   panelLayout = "Connection: Parallel";
-  if (totalPanelCurrent > 50) {
-    // High current: append warning but keep actual breaker
-    voltageSuggestion = "💡 High current (>50A) for 12V system. Consider using 24V system to reduce wire size and improve efficiency.";
-    solarBreakerDisplay += " ⚠️ <span style='color:#ff1744;'>Too high for 12V, use 24V system</span>";
+
+  // Compare actual panel current with breaker (with 25% safety margin)
+  const actualCurrentWithMargin = totalPanelCurrent * 1.25;
+  const solarBreakerValue = parseInt(solarBreaker);
+
+  // Clear previous solar warning
+  solarBreakerDisplay = solarBreakerDisplay.replace(/⚠️.*Current exceeds breaker rating/g, "");
+
+  // Only show warning if current is dangerously high, e.g., above 40A
+  if (!isNaN(solarBreakerValue) && actualCurrentWithMargin > solarBreakerValue && solarBreakerValue >= 40) {
+    voltageSuggestion += `💡 Warning: Your 12V system's solar current (${totalPanelCurrent.toFixed(1)}A) exceeds your breaker (${solarBreaker}). Consider using 24V system.\n`;
+    solarBreakerDisplay += " ⚠️ <span style='color:#ff1744;'>Current exceeds breaker rating</span>";
   }
 } else {
   // 24V / 48V systems
