@@ -207,22 +207,18 @@ Short by: ${mh} hr ${mm} min`;
   // Panel layout text
  // Panel layout & solar breaker for 12V safely
 let panelLayout = "";
-let solarBreakerDisplay = "";
+let solarBreakerDisplay = nearest(totalPanelCurrent * 1.25); // always show actual breaker
 
 if (V === 12) {
   panelLayout = "Connection: Parallel";
   if (totalPanelCurrent > 50) {
-    // High current: recommend 24V
+    // High current: append warning but keep actual breaker
     voltageSuggestion = "💡 High current (>50A) for 12V system. Consider using 24V system to reduce wire size and improve efficiency.";
-    solarBreakerDisplay = `<span style="color:#ff1744;">⚠️ Too high for 12V, use 24V system</span>`;
-  } else {
-    // Safe current: show breaker normally
-    solarBreakerDisplay = nearest(totalPanelCurrent * 1.25);
+    solarBreakerDisplay += " ⚠️ <span style='color:#ff1744;'>Too high for 12V, use 24V system</span>";
   }
 } else {
   // 24V / 48V systems
   panelLayout = `Series per string: ${panelsInSeries}, Parallel strings: ${panelsParallel}, Total panels: ${totalPanels}`;
-  solarBreakerDisplay = nearest(totalPanelCurrent * 1.25);
 }
   // Controller
   const controller = controllerSize((solar / V) * 1.25);
