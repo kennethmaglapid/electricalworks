@@ -216,7 +216,7 @@ const panelLayout = `Series per string: ${panelsInSeries}, Parallel strings: ${p
   <div style="margin:0 0 2px 0; padding:3px 5px; border:1px solid #ffd600; border-radius:4px; background:${document.body.classList.contains('light') ? '#fff8e1' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
     <strong>☀️ Solar</strong>
 <p style="margin:1px 0; font-size:12px;">Needed: <span style="color:#ffea00;">${solar} W</span> | Panels: <span style="color:#00b0ff;">${totalPanels}</span> x ${panelWatt}W</p>
-<p style="margin:1px 0; font-size:12px;">Layout: ${panelLayout}</p>
+${(V !== 12 || totalPanels > 1) ? `<p style="margin:1px 0; font-size:12px;">Layout: ${panelLayout}</p>` : ''}
     <p style="margin:1px 0; font-size:12px;">Breaker: <span style="color:#ff1744;">${solarBreaker}</span></p>
     <p style="margin:1px 0; font-size:12px;">Wire: ${solarWire}, ${solarDistance} m, Current: ${totalPanelCurrent.toFixed(2)}A</p>
   </div>
