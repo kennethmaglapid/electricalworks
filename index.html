@@ -281,7 +281,7 @@ solarBreakerDisplay += " ⚠️ <span style='color:#ff1744;'>60A LIMIT REACHED  
     <strong>🔌 Battery → Inverter</strong>
     <p style="margin:1px 0; font-size:12px;">Wire: ${batteryWire}, ${batteryDistance} m, Current: ${batteryCurrent.toFixed(2)}A</p>
     <p style="margin:1px 0; font-size:12px;">Breaker: <span style="color:#ff1744;">${batteryBreaker}</span></p>
-    <p style="margin:1px 0; font-size:12px;">Inverter: ${inverterSize(load)} | Controller: ${controller}</p>
+    <p style="margin:1px 0; font-size:12px;">Inverter: ${inverterSize(load)} | SCC / PWM / MPPT: ${controller}</p>
   </div>
 
   <div style="margin:0; padding:3px 5px; border-radius:4px; background:${batt >= battNeed ? (document.body.classList.contains('light') ? '#c8e6c933' : '#00c85333') : (document.body.classList.contains('light') ? '#ffebee33' : '#ff174433')}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
