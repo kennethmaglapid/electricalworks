@@ -146,17 +146,17 @@ function calculate() {
   // Solar calculation
   const solar = Math.ceil((Wh * systemLoss) / sunHours);
   const panels = Math.ceil(solar / panelWatt);
-  const panelWattTotal = panels * panelWatt; // total wattage from all panels
+  const panelWattTotal = panels * panelWatt;
   const battNeed = Math.ceil(Wh / (V * dod));
   const controllerRaw = (solar / V) * 1.25;
   const controller = controllerSize(controllerRaw);
-  const inverterW = parseFloat(inverterSize(load).replace("W","")); // numeric
+  const inverterW = parseFloat(inverterSize(load).replace("W","")); 
   const batteryCurrent = inverterW / V;
-   const panelCurrent = panelWatt / V; // amps per panel (DC)
+  const panelCurrent = panelWatt / V;
   const solarWire = wireSize(panelCurrent, solarDistance);
   const batteryWire = wireSize(batteryCurrent, batteryDistance);
-const solarBreaker = nearest(panelCurrent * 1.25); // 25% safety factor
-const batteryBreaker = nearest(batteryCurrent * 1.25);
+  const solarBreaker = nearest(panelCurrent * 1.25);
+  const batteryBreaker = nearest(batteryCurrent * 1.25);
 
   const inverterEff = 0.9;
   const runtimeHours = (batt * V * dod * inverterEff) / load;
@@ -186,25 +186,32 @@ Short by: ${mh} hr ${mm} min`;
     ? `⏱ Your ${batt}Ah battery can run your load for:\n${h} hr ${m} min ${s} sec`
     : `⏱ Your ${batt}Ah battery will ONLY last:\n${h} hr ${m} min ${s} sec`;
 
-let resultHTML = `
-<div style="padding:4px; line-height:1.1; font-size:12px;">
+  // 24V Suggestion
+  let voltageSuggestion = "";
+  if (V === 12 && batteryCurrent > 50) {
+    voltageSuggestion = "💡 Suggestion: Your load draws high current. Consider using 24V system to reduce wire size and improve efficiency.";
+  }
 
+  let resultHTML = `
+<div style="padding:4px; line-height:1.1; font-size:12px;">
   <h3 style="text-align:center; color:#00c853; margin:2px 0 4px 0; font-size:14px;">⚡ RESULT</h3>
-  
+
+  ${voltageSuggestion ? `<p style="color:#ffd600; font-size:12px; margin-bottom:5px;">${voltageSuggestion}</p>` : ''}
+
   <div style="margin:0 0 2px 0; padding:3px 5px; border:1px solid #00c853; border-radius:4px; background:${document.body.classList.contains('light') ? '#e8f5e9' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
     <strong>🔋 Battery (${batteryType.toUpperCase()})</strong>
     <p style="margin:1px 0; font-size:12px;">Needed: <span style="color:#ffea00;">${battNeed}Ah</span> | Your: <span style="color:#00b0ff;">${batt}Ah</span></p>
     <p style="margin:1px 0; font-size:12px;">${runtimeText}</p>
     ${batt > battNeed ? `<p style="margin:1px 0; color:#76ff03; font-size:12px;">Extra: ${(batt - battNeed).toFixed(0)}Ah</p>` : ''}
   </div>
-  
+
   <div style="margin:0 0 2px 0; padding:3px 5px; border:1px solid #ffd600; border-radius:4px; background:${document.body.classList.contains('light') ? '#fff8e1' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
     <strong>☀️ Solar</strong>
     <p style="margin:1px 0; font-size:12px;">Needed: <span style="color:#ffea00;">${solar} W</span> | Panels: <span style="color:#00b0ff;">${panels}</span> x ${panelWatt}W</p>
     <p style="margin:1px 0; font-size:12px;">Breaker: <span style="color:#ff1744;">${solarBreaker}</span></p>
     <p style="margin:1px 0; font-size:12px;">Wire: ${solarWire}, ${solarDistance} m, Current: ${panelCurrent.toFixed(2)}A</p>
   </div>
-  
+
   <div style="margin:0 0 2px 0; padding:3px 5px; border:1px solid #29b6f6; border-radius:4px; background:${document.body.classList.contains('light') ? '#e1f5fe' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
     <strong>🔌 Battery → Inverter</strong>
     <p style="margin:1px 0; font-size:12px;">Wire: ${batteryWire}, ${batteryDistance} m, Current: ${batteryCurrent.toFixed(2)}A</p>
@@ -215,11 +222,10 @@ let resultHTML = `
   <div style="margin:0; padding:3px 5px; border-radius:4px; background:${batt >= battNeed ? (document.body.classList.contains('light') ? '#c8e6c933' : '#00c85333') : (document.body.classList.contains('light') ? '#ffebee33' : '#ff174433')}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
     <strong>Status:</strong> ${status}
   </div>
-
 </div>
 `;
 
-document.getElementById("results").innerHTML = resultHTML;
+  document.getElementById("results").innerHTML = resultHTML;
 }
 
   function wireSize(current, distance) {
