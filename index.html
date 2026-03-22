@@ -186,36 +186,40 @@ Short by: ${mh} hr ${mm} min`;
     ? `⏱ Your ${batt}Ah battery can run your load for:\n${h} hr ${m} min ${s} sec`
     : `⏱ Your ${batt}Ah battery will ONLY last:\n${h} hr ${m} min ${s} sec`;
 
-  let result = `
-🔋 Battery Needed: ${battNeed}Ah (${batteryType.toUpperCase()})
-☀️ Solar Needed: ${solar}W
-🔢 Panels Needed: ${panels} pcs (${panelWatt}W each)
+let resultHTML = `
+<div style="padding:4px; line-height:1.1; font-size:12px;">
 
-⚡ Charge Controller: ${controller} (computed: ${controllerRaw.toFixed(1)}A)
-🔌 Inverter: ${inverterSize(load)}
+  <h3 style="text-align:center; color:#00c853; margin:2px 0 4px 0; font-size:14px;">⚡ RESULT</h3>
+  
+  <div style="margin:1px 0; padding:3px 5px; border:1px solid #00c853; border-radius:4px; background:${document.body.classList.contains('light') ? '#e8f5e9' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
+    <strong>🔋 Battery (${batteryType.toUpperCase()})</strong>
+    <p style="margin:1px 0; font-size:12px;">Needed: <span style="color:#ffea00;">${battNeed}Ah</span> | Your: <span style="color:#00b0ff;">${batt}Ah</span></p>
+    <p style="margin:1px 0; font-size:12px;">${runtimeText}</p>
+    ${batt > battNeed ? `<p style="margin:1px 0; color:#76ff03; font-size:12px;">Extra: ${(batt - battNeed).toFixed(0)}Ah</p>` : ''}
+  </div>
+  
+  <div style="margin:1px 0; padding:3px 5px; border:1px solid #ffd600; border-radius:4px; background:${document.body.classList.contains('light') ? '#fff8e1' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
+    <strong>☀️ Solar</strong>
+    <p style="margin:1px 0; font-size:12px;">Needed: <span style="color:#ffea00;">${solar} W</span> | Panels: <span style="color:#00b0ff;">${panels}</span> x ${panelWatt}W</p>
+    <p style="margin:1px 0; font-size:12px;">Breaker: <span style="color:#ff1744;">${solarBreaker}</span></p>
+    <p style="margin:1px 0; font-size:12px;">Wire: ${solarWire}, ${solarDistance} m, Current: ${panelCurrent.toFixed(2)}A</p>
+  </div>
+  
+  <div style="margin:1px 0; padding:3px 5px; border:1px solid #29b6f6; border-radius:4px; background:${document.body.classList.contains('light') ? '#e1f5fe' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
+    <strong>🔌 Battery → Inverter</strong>
+    <p style="margin:1px 0; font-size:12px;">Wire: ${batteryWire}, ${batteryDistance} m, Current: ${batteryCurrent.toFixed(2)}A</p>
+    <p style="margin:1px 0; font-size:12px;">Breaker: <span style="color:#ff1744;">${batteryBreaker}</span></p>
+    <p style="margin:1px 0; font-size:12px;">Inverter: ${inverterSize(load)} | Controller: ${controller}</p>
+  </div>
 
-☀️ Solar Wire (Panel → Controller)
-📏 Size: ${solarWire}
-📏 Distance: ${solarDistance} m
-⚡ Current: ${panelCurrent.toFixed(2)} A
+  <div style="margin:1px 0; padding:3px 5px; border-radius:4px; background:${batt >= battNeed ? (document.body.classList.contains('light') ? '#c8e6c933' : '#00c85333') : (document.body.classList.contains('light') ? '#ffebee33' : '#ff174433')}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
+    <strong>Status:</strong> ${status}
+  </div>
 
-🔋 Battery Wire (Battery → Inverter)
-📏 Size: ${batteryWire}
-📏 Distance: ${batteryDistance} m
-⚡ Current: ${batteryCurrent.toFixed(2)} A
-
-🧯 Solar Breaker (DC): ${solarBreaker}
-🔋 Battery Breaker (DC): ${batteryBreaker}
-
-${runtimeText}
-
------------------------
-${status}
+</div>
 `;
 
-  if (batt > battNeed) result += "\n🔋 Extra Capacity: " + (batt - battNeed) + "Ah";
-
-  document.getElementById("results").innerText = result;
+document.getElementById("results").innerHTML = resultHTML;
 }
 
   function wireSize(current, distance) {
