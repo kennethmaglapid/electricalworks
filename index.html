@@ -103,75 +103,130 @@ button:hover { background:#00a844; }
     document.getElementById("results").innerText = "";
   }
   function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-  function renderInputs() {
-    document.getElementById("inputs").innerHTML = `
-      <label>Load (W)</label>
-      <input id="load">
-      <label>Hours/day</label>
-      <input id="hours">
-      <label>Your Battery (Ah)</label>
-      <input id="battery">
-      <label>Wire Distance (meters)</label>
-      <input id="distance" placeholder="e.g. 5">
-    `;
-  }
+ function renderInputs() {
+  document.getElementById("inputs").innerHTML = `
+    <label>Load (W)</label>
+    <input id="load">
+
+    <label>Hours/day</label>
+    <input id="hours">
+
+    <label>Your Battery (Ah)</label>
+    <input id="battery">
+
+    <label>Solar Distance (panel → controller) (meters)</label>
+    <input id="solarDistance" placeholder="e.g. 5">
+
+    <label>Battery Distance (battery → inverter) (meters)</label>
+    <input id="batteryDistance" placeholder="e.g. 2">
+  `;
+}
 
   // ==================== CALCULATOR ====================
-  function calculate() {
-    const V = parseFloat(document.getElementById("voltage").value);
-    const batteryType = document.getElementById("batteryType").value;
-    const panelWatt = parseFloat(document.getElementById("panelWatt").value) || 470;
+function calculate() {
+  const V = parseFloat(document.getElementById("voltage").value);
+  const batteryType = document.getElementById("batteryType").value;
+  const panelWatt = parseFloat(document.getElementById("panelWatt").value) || 470;
 
-    const load = parseFloat(document.getElementById("load").value);
-    const hours = parseFloat(document.getElementById("hours").value);
-    const batt = parseFloat(document.getElementById("battery").value);
-    const distance = parseFloat(document.getElementById("distance").value);
+  const load = parseFloat(document.getElementById("load").value);
+  const hours = parseFloat(document.getElementById("hours").value);
+  const batt = parseFloat(document.getElementById("battery").value);
+  const solarDistance = parseFloat(document.getElementById("solarDistance").value);
+  const batteryDistance = parseFloat(document.getElementById("batteryDistance").value);
 
-    if (!load || !hours || !batt || !distance) return alert("Fill all fields");
+  if (isNaN(load) || isNaN(hours) || isNaN(batt) || isNaN(solarDistance) || isNaN(batteryDistance)) {
+    return alert("Fill all fields correctly");
+  }
 
-    const sunHours = 4.5;
-    const systemLoss = 1.3;
-    const dod = batteryType === "lifepo4" ? 0.9 : 0.5;
-    const Wh = load * hours;
-    const solar = Math.ceil((Wh * systemLoss) / sunHours);
-    const panels = Math.ceil(solar / panelWatt);
-    const battNeed = Math.ceil(Wh / (V * dod));
-    const controller = Math.ceil((solar / V) * 1.25);
-    const current = load / V;
-    const solarBreaker = nearest((solar / V) * 1.25);
-    const batteryBreaker = nearest((load / V) * 2);
-    const runtime = (batt * V * dod) / load;
+  const sunHours = 4.5;
+  const systemLoss = 1.3;
+  const dod = batteryType === "lifepo4" ? 0.9 : 0.5;
+  const Wh = load * hours;
 
-    let result = `
+  // Solar calculation
+  const solar = Math.ceil((Wh * systemLoss) / sunHours);
+  const panels = Math.ceil(solar / panelWatt);
+  const panelWattTotal = panels * panelWatt; // total wattage from all panels
+  const battNeed = Math.ceil(Wh / (V * dod));
+  const controllerRaw = (solar / V) * 1.25;
+  const controller = controllerSize(controllerRaw);
+  const inverterW = parseFloat(inverterSize(load).replace("W","")); // numeric
+  const batteryCurrent = inverterW / V;
+   const panelCurrent = panelWatt / V; // amps per panel (DC)
+  const solarWire = wireSize(panelCurrent, solarDistance);
+  const batteryWire = wireSize(batteryCurrent, batteryDistance);
+const solarBreaker = nearest(panelCurrent * 1.25); // 25% safety factor
+const batteryBreaker = nearest(batteryCurrent * 1.25);
+
+  const inverterEff = 0.9;
+  const runtimeHours = (batt * V * dod * inverterEff) / load;
+
+  const totalSeconds = runtimeHours * 3600;
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = Math.floor(totalSeconds % 60);
+
+  // System status
+  let status = "";
+  const deficitAh = battNeed - batt;
+
+  if (batt >= battNeed) {
+    status = "✅ SYSTEM OK (Battery is enough)";
+  } else {
+    const missingHours = hours - runtimeHours;
+    const missTotalSec = missingHours * 3600;
+    const mh = Math.floor(missTotalSec / 3600);
+    const mm = Math.floor((missTotalSec % 3600) / 60);
+    status = `⚠️ BATTERY TOO SMALL
+Missing: ${deficitAh.toFixed(0)}Ah
+Short by: ${mh} hr ${mm} min`;
+  }
+
+  let runtimeText = batt >= battNeed
+    ? `⏱ Your ${batt}Ah battery can run your load for:\n${h} hr ${m} min ${s} sec`
+    : `⏱ Your ${batt}Ah battery will ONLY last:\n${h} hr ${m} min ${s} sec`;
+
+  let result = `
 🔋 Battery Needed: ${battNeed}Ah (${batteryType.toUpperCase()})
 ☀️ Solar Needed: ${solar}W
 🔢 Panels Needed: ${panels} pcs (${panelWatt}W each)
 
-⚡ Charge Controller: ${controller}A
+⚡ Charge Controller: ${controller} (computed: ${controllerRaw.toFixed(1)}A)
 🔌 Inverter: ${inverterSize(load)}
 
-📏 Wire Size: ${wireSize(current, distance)}
-📏 Distance: ${distance} m
-⚡ Current: ${current.toFixed(2)} A
+☀️ Solar Wire (Panel → Controller)
+📏 Size: ${solarWire}
+📏 Distance: ${solarDistance} m
+⚡ Current: ${panelCurrent.toFixed(2)} A
 
-🧯 Solar Breaker: ${solarBreaker}
-🔋 Battery Breaker: ${batteryBreaker}
+🔋 Battery Wire (Battery → Inverter)
+📏 Size: ${batteryWire}
+📏 Distance: ${batteryDistance} m
+⚡ Current: ${batteryCurrent.toFixed(2)} A
 
-Your battery runs ≈ ${runtime.toFixed(1)} hrs
+🧯 Solar Breaker (DC): ${solarBreaker}
+🔋 Battery Breaker (DC): ${batteryBreaker}
+
+${runtimeText}
+
+-----------------------
+${status}
 `;
 
-    document.getElementById("results").innerText = result;
-  }
+  if (batt > battNeed) result += "\n🔋 Extra Capacity: " + (batt - battNeed) + "Ah";
+
+  document.getElementById("results").innerText = result;
+}
 
   function wireSize(current, distance) {
-    const dropFactor = distance / 10;
-    if (current * dropFactor <= 10) return "2.5 mm² (14 AWG)";
-    if (current * dropFactor <= 20) return "4 mm² (12 AWG)";
-    if (current * dropFactor <= 30) return "6 mm² (10 AWG)";
-    if (current * dropFactor <= 50) return "10 mm² (7 AWG)";
-    return "16 mm² (5 AWG)";
-  }
+  const drop = (current * distance) / 10;
 
+  if (drop <= 10) return "2.5 mm² (14 AWG)";
+  if (drop <= 20) return "4 mm² (12 AWG)";
+  if (drop <= 30) return "6 mm² (10 AWG)";
+  if (drop <= 50) return "10 mm² (8 AWG)";
+  return "16 mm² (6 AWG)";
+}
   function inverterSize(load) {
     let size = load * 1.5;
     if (size <= 300) return "300W";
@@ -181,11 +236,20 @@ Your battery runs ≈ ${runtime.toFixed(1)} hrs
     return Math.ceil(size / 500) * 500 + "W";
   }
 
-  function nearest(a){
-    const sizes=[10,15,20,25,30,40,50,60,80,100,125];
-    for(let s of sizes){ if(a<=s) return s+"A"; }
-    return "125A+";
+function controllerSize(a){
+  const sizes = [10,20,30,40,50,60,80,100];
+  for(let s of sizes){
+    if(a <= s) return s + "A";
   }
+  return "100A+";
+}
+function nearest(a){
+  const sizes=[10,15,20,25,30,40,50,60,80,100,125];
+  for(let s of sizes){
+    if(a <= s) return s + "A";
+  }
+  return "125A+";
+}
 
   setMode("design");
 
