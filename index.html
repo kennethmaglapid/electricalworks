@@ -246,9 +246,9 @@ if (V === 12) {
   solarBreakerDisplay = solarBreakerDisplay.replace(/⚠️.*Current exceeds breaker rating/g, "");
 
   // Only show warning if current is dangerously high, e.g., above 40A
-  if (!isNaN(solarBreakerValue) && solarBreakerValue >= 80 && V === 12) {
+  if (!isNaN(solarBreakerValue) && solarBreakerValue >= 60 && V === 12) {
     voltageSuggestion += `⚠️ WARNING: Solar breaker reached ${solarBreaker}. This is too high for a 12V system. Upgrade to 24V or 48V.\n`;
-solarBreakerDisplay += " ⚠️ <span style='color:#ff1744;'>80A LIMIT REACHED</span>";
+solarBreakerDisplay += " ⚠️ <span style='color:#ff1744;'>60A LIMIT REACHED  Upgrade to 24V for higher watt panels.";
   }
 } else {
   // 24V / 48V systems
