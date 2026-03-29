@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <title>MGLPD Solar Calculator</title>
-
 <style>
 body { font-family: Arial; margin:0; background:#121212; color:white; }
 .container { padding:20px; }
 h2 { text-align:center; }
 .card { background:#1e1e1e; padding:15px; border-radius:12px; margin-bottom:15px; }
 input, select { width:100%; padding:12px; margin-top:8px; border-radius:8px; border:none; background:#333; color:white; }
-button { width:100%; padding:15px; margin-top:10px; border-radius:10px; border:none; background:#00c853; color:white; font-size:16px; }
+button { width:100%; padding:15px; margin-top:10px; border-radius:10px; border:none; background:#00c853; color:white; font-size:16px; cursor:pointer; }
 button:hover { background:#00a844; }
 .mode-buttons button { background:#2962ff; }
 .mode-buttons button.active { background:#0039cb; }
@@ -26,16 +25,13 @@ button:hover { background:#00a844; }
 </style>
 </head>
 <body>
-
 <div class="container">
   <div style="position:absolute; top:10px; right:20px; font-size:14px;">
     <span id="viewCounter">Views: 0</span>
   </div>  
-
   <div style="text-align:right; margin-bottom:10px;">
     <button onclick="toggleTheme()" id="themeBtn">🌙 Dark</button>
   </div>
-
   <h2>⚡ MGLPD</h2>
   <p style="text-align:center; font-weight:bold;">Solar Calculator</p>
 
@@ -62,14 +58,14 @@ button:hover { background:#00a844; }
     <label>Panel Watt (per panel)</label>
     <input id="panelWatt" placeholder="e.g. 470">
     <label>Number of Panels</label>
-<input id="numPanels" placeholder="e.g. 2">
+    <input id="numPanels" placeholder="e.g. 2">
 
-<label>Connection Type</label>
-<select id="connectionType">
-  <option value="auto">Auto (Recommended)</option>
-  <option value="parallel">Parallel</option>
-  <option value="series">Series</option>
-</select>
+    <label>Connection Type</label>
+    <select id="connectionType">
+      <option value="auto">Auto (Recommended)</option>
+      <option value="parallel">Parallel</option>
+      <option value="series">Series</option>
+    </select>
     <button onclick="calculate()">CALCULATE</button>
     
   </div>
@@ -77,79 +73,70 @@ button:hover { background:#00a844; }
   <div class="results" id="results"></div>
 </div>
 
-<!-- Firebase Scripts -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js"></script>
-
 <script>
-  // ==================== THEME (LIGHT/DARK) ====================
-  window.onload = function () {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "light") {
-      document.body.classList.add("light");
-      document.getElementById("themeBtn").innerText = "☀️ Light";
-    }
-  };
-  function toggleTheme() {
-    document.body.classList.toggle("light");
-    const btn = document.getElementById("themeBtn");
-    if (document.body.classList.contains("light")) {
-      btn.innerText = "☀️ Light";
-      localStorage.setItem("theme", "light");
-    } else {
-      btn.innerText = "🌙 Dark";
-      localStorage.setItem("theme", "dark");
-    }
+window.onload = function () {
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme === "light") {
+    document.body.classList.add("light");
+    document.getElementById("themeBtn").innerText = "☀️ Light";
   }
+};
 
-  // ==================== MODES ====================
-  let mode = "design";
-  function setMode(m) {
-    mode = m;
-    document.querySelectorAll(".mode-buttons button").forEach(b => b.classList.remove("active"));
-    document.getElementById("btn" + capitalize(m)).classList.add("active");
-    renderInputs();
-    document.getElementById("results").innerText = "";
+function toggleTheme() {
+  document.body.classList.toggle("light");
+  const btn = document.getElementById("themeBtn");
+  if (document.body.classList.contains("light")) {
+    btn.innerText = "☀️ Light";
+    localStorage.setItem("theme", "light");
+  } else {
+    btn.innerText = "🌙 Dark";
+    localStorage.setItem("theme", "dark");
   }
-  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
- function renderInputs() {
+}
+
+// Modes
+let mode = "design";
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll(".mode-buttons button").forEach(b => b.classList.remove("active"));
+  document.getElementById("btn" + capitalize(m)).classList.add("active");
+  renderInputs();
+  document.getElementById("results").innerText = "";
+}
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function renderInputs() {
   document.getElementById("inputs").innerHTML = `
     <label>Load (W)</label>
     <input id="load">
-
     <label>Hours/day</label>
     <input id="hours">
-
     <label>Your Battery (Ah)</label>
     <input id="battery">
-
     <label>Solar Distance (panel → controller) (meters)</label>
     <input id="solarDistance" placeholder="e.g. 5">
-
     <label>Battery Distance (battery → inverter) (meters)</label>
     <input id="batteryDistance" placeholder="e.g. 2">
   `;
 }
 
-
 // ==================== CALCULATOR ====================
-
 function calculate() {
   const V = parseFloat(document.getElementById("voltage").value);
   const batteryType = document.getElementById("batteryType").value;
   const panelWatt = parseFloat(document.getElementById("panelWatt").value) || 470;
+  const numPanels = parseInt(document.getElementById("numPanels").value) || 1;
   const load = parseFloat(document.getElementById("load").value);
   const hours = parseFloat(document.getElementById("hours").value);
   const batt = parseFloat(document.getElementById("battery").value);
   const solarDistance = parseFloat(document.getElementById("solarDistance").value);
   const batteryDistance = parseFloat(document.getElementById("batteryDistance").value);
+  const connectionType = document.getElementById("connectionType").value;
 
-  if (isNaN(load) || isNaN(hours) || isNaN(batt) || isNaN(solarDistance) || isNaN(batteryDistance)) {
+  if ([load, hours, batt, solarDistance, batteryDistance].some(isNaN)) {
     return alert("Fill all fields correctly");
   }
 
-  // ------------------- CONSTANTS -------------------
   const sunHours = 4.5;
   const systemLoss = 1.3;
   const dod = batteryType === "lifepo4" ? 0.9 : 0.5;
@@ -157,284 +144,141 @@ function calculate() {
   const inverterEff = 0.9;
   const Wh = load * hours;
 
-  // ------------------- SOLAR REQUIREMENT -------------------
-  const solar = Math.ceil((Wh * systemLoss) / sunHours);  // minimum watts needed
-  const solarMinCurrent = solar / V;                     // I = P / V
-  const solarMinCurrentWithMargin = solarMinCurrent * 1.25; // 25% safety margin
+  // Solar requirement
+  const solarNeededW = Math.ceil((Wh * systemLoss) / sunHours);
+  const panelVoltage = 18; // typical
+  const panelCurrent = panelWatt / panelVoltage;
 
-// ------------------- PANEL CONFIG -------------------
-const numPanels = parseInt(document.getElementById("numPanels").value) || 1;
-const connectionType = document.getElementById("connectionType").value;
-
-// Assume typical panel specs (important!)
-const panelVoltage = 18; // Vmp typical
-const panelCurrent = panelWatt / panelVoltage;
-
-let totalVoltage, totalCurrent, connectionUsed, suggestion = "";
-
-// ------------------- CONNECTION LOGIC -------------------
-if (connectionType === "parallel") {
-  totalVoltage = panelVoltage;
-  totalCurrent = panelCurrent * numPanels;
-  connectionUsed = "Parallel";
-
-} else if (connectionType === "series") {
-  totalVoltage = panelVoltage * numPanels;
-  totalCurrent = panelCurrent;
-  connectionUsed = "Series";
-
-} else {
-  // AUTO MODE (SMART)
-  totalVoltage = panelVoltage;
-  totalCurrent = panelCurrent * numPanels;
-  connectionUsed = "Parallel (Auto)";
-}
-// ------------------- BREAKER CHECK -------------------
-const breakerLimit = 16; // your default example
-const actualCurrent = totalCurrent * 1.25;
-
-if (actualCurrent > breakerLimit) {
-  suggestion += `⚠️ Current (${actualCurrent.toFixed(1)}A) exceeds breaker (${breakerLimit}A)\n`;
-
-  if (connectionType !== "series") {
-    suggestion += `👉 Suggestion: Use SERIES connection to reduce current.\n`;
-
-    // simulate series
-    const seriesVoltage = panelVoltage * numPanels;
-    const seriesCurrent = panelCurrent;
-
-    suggestion += `Series Result: ${seriesVoltage}V, ${seriesCurrent.toFixed(1)}A\n`;
+  let totalVoltage, totalCurrent, connectionUsed;
+  if (connectionType === "series") {
+    totalVoltage = panelVoltage * numPanels;
+    totalCurrent = panelCurrent;
+    connectionUsed = "Series";
+  } else {
+    totalVoltage = panelVoltage;
+    totalCurrent = panelCurrent * numPanels;
+    connectionUsed = connectionType === "parallel" ? "Parallel" : "Parallel (Auto)";
   }
 
-  // HIGH POWER WARNING
-  if (totalVoltage <= 20 && (panelWatt * numPanels) > 600) {
-    suggestion += `⚠️ Too much power for 12V system.\n👉 Upgrade to 24V system.\n`;
+  // Solar breaker
+  const solarBreakerCurrent = totalCurrent * 1.25;
+  const solarBreakerValue = nearestBreaker(solarBreakerCurrent);
+
+  let solarBreakerWarning = "";
+  if (solarBreakerValue > 60 && connectionUsed.includes("Parallel")) {
+    solarBreakerWarning = `⚠️ High current (${solarBreakerCurrent.toFixed(1)}A). Use SERIES to reduce current.`;
   }
-}
-  // ------------------- SOLAR BREAKER -------------------
- let solarCurrent = totalCurrent; // from your connection logic
-let solarBreakerCurrent = solarCurrent * 1.25; // NEC 125%
-
-function nearestBreaker(a){
-  const sizes = [6,10,15,20,25,30,40,50,63,80,100];
-  for(let s of sizes){
-    if(a <= s) return s;
+  if (V === 12 && (panelWatt * numPanels) > 600) {
+    solarBreakerWarning += `\n⚠️ Too much power for 12V → Recommend 24V system.`;
   }
-  return 125;
-}
 
-let solarBreaker = nearestBreaker(solarBreakerCurrent);
-let solarBreakerDisplay = solarBreaker + "A";
-
-let solarBreakerWarning = "";
-
-// If breaker exceeded typical 16A setup
-if (solarBreaker > 16 && connectionUsed.includes("Parallel")) {
-  solarBreakerWarning = `⚠️ High current (${solarBreakerCurrent.toFixed(1)}A)
-👉 Use SERIES to reduce current`;
-}
-
-// 12V system limit warning
-if (V === 12 && (panelWatt * numPanels) > 600) {
-  solarBreakerWarning += `\n⚠️ Too big for 12V → Upgrade to 24V`;
-}
-
-  // ------------------- BATTERY -------------------
+  // Battery runtime
   const runtimeHours = (batt * V * dod * battEfficiency * inverterEff) / load;
   const totalSeconds = runtimeHours * 3600;
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = Math.floor(totalSeconds % 60);
 
-  const battNeed = Math.ceil(Wh / (V * dod * battEfficiency));
-  const deficitAh = battNeed - batt;
+  const battNeeded = Math.ceil(Wh / (V * dod * battEfficiency));
+  const deficitAh = battNeeded - batt;
+  let status = batt >= battNeeded
+    ? "✅ SYSTEM OK (Battery is enough)"
+    : `⚠️ BATTERY TOO SMALL\nMissing: ${deficitAh.toFixed(0)}Ah`;
 
-  let status = "";
-  if (batt >= battNeed) {
-    status = "✅ SYSTEM OK (Battery is enough)";
-  } else {
-    const missingHours = hours - runtimeHours;
-    const missTotalSec = missingHours * 3600;
-    const mh = Math.floor(missTotalSec / 3600);
-    const mm = Math.floor((missTotalSec % 3600) / 60);
-    status = `⚠️ BATTERY TOO SMALL
-Missing: ${deficitAh.toFixed(0)}Ah
-Short by: ${mh} hr ${mm} min`;
-  }
-
-  let runtimeText = batt >= battNeed
+  let runtimeText = batt >= battNeeded
     ? `⏱ Your ${batt}Ah battery can run your load for:\n${h} hr ${m} min ${s} sec`
     : `⏱ Your ${batt}Ah battery will ONLY last:\n${h} hr ${m} min ${s} sec`;
 
-  // ------------------- WIRE & INVERTER -------------------
-  const solarWire = wireSize(totalCurrent * 1.25, solarDistance);
-  const inverterW = parseFloat(inverterSize(load).replace("W",""));
-  const batteryCurrent = inverterW / V;
-  const batteryWire = wireSize(batteryCurrent, batteryDistance);
+  // ==================== WIRES & BREAKERS ====================
+  const solarWire = wireSizePEC(totalCurrent, V, solarDistance, solarBreakerValue);
+  const controllerToBatteryCurrent = totalCurrent;
+  const controllerToBatteryBreaker = nearestBreaker(controllerToBatteryCurrent * 1.25);
+  const controllerToBatteryWire = wireSizePEC(controllerToBatteryCurrent, V, batteryDistance, controllerToBatteryBreaker);
 
-  // ------------------- BATTERY BREAKER -------------------
- const batteryCurrentActual = load / (V * inverterEff);
+  const batteryCurrent = load / V / inverterEff;
+  const batteryBreaker = nearestBreaker(batteryCurrent * 1.25);
+  const batteryWire = wireSizePEC(batteryCurrent, V, batteryDistance, batteryBreaker);
+  let batteryWarn = "";
+  if (batteryBreaker > 60 && V === 12) batteryWarn = "⚠️ High current → Consider 24V system";
 
-// Add surge (inverter startup)
-const surgeFactor = 1.25; // safe for most systems
-const batteryBreakerCurrent = batteryCurrentActual * 1.25 * surgeFactor;
+  // ------------------- CONTROLLER SIZING -------------------
+  const controllerAmp = nearestControllerAmp(totalCurrent); // recommended MPPT/PWM current
+  const controllerBreaker = nearestBreaker(controllerAmp); // 125% rule for breaker
+  const controllerType = totalVoltage > V + 5 ? "MPPT (Recommended)" : "PWM (OK, MPPT better)";
 
-const batteryBreaker = nearestBreaker(batteryBreakerCurrent);
-
-// Smart warning
-let batteryWarn = "";
-if (batteryBreaker > 60 && V === 12) {
-  batteryWarn = "⚠️ High current → Consider 24V system";
-}
-
-  // ------------------- CONTROLLER -------------------
-  const controllerCurrent = (panelWatt * numPanels) / V;
-const controller = controllerSize(controllerCurrent * 1.25);
- const solarWireText = `Wire size from SOLAR → MPPT/PWM`;
-const solarWireValue = solarWire;
-// MPPT → BATTERY breaker (NEW - missing)
-const controllerToBatteryCurrent = controllerCurrent * 1.25;
-const controllerToBatteryBreaker = nearestBreaker(controllerToBatteryCurrent);
-const batteryWireText = `Wire size from BATTERY → INVERTER`;
-const batteryWireValue = batteryWire;
-const controllerToBatteryWire = wireSize(controllerToBatteryCurrent, batteryDistance);
-  // ------------------- CONTROLLER TYPE -------------------
-let controllerType = "";
-if (totalVoltage > V + 5) {
-  controllerType = "MPPT (Recommended)";
-} else {
-  controllerType = "PWM (OK, MPPT better)";
-}
-
-  // ------------------- RENDER RESULTS -------------------
-  let resultHTML = `
-<div style="padding:4px; line-height:1.1; font-size:12px;">
-  <h3 style="text-align:center; color:#00c853; margin:2px 0 4px 0; font-size:14px;">⚡ RESULT</h3>
-  <div style="margin:0 0 2px 0; padding:3px 5px; border:1px solid #00c853; border-radius:4px; background:${document.body.classList.contains('light') ? '#e8f5e9' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
-    <strong>🔋 Battery (${batteryType.toUpperCase()})</strong>
-    <p style="margin:1px 0; font-size:12px;">Needed: <span style="color:#ffea00;">${battNeed}Ah</span> | Your: <span style="color:#00b0ff;">${batt}Ah</span></p>
-    <p style="margin:1px 0; font-size:12px;">${runtimeText}</p>
-  </div>
-
-  <div style="margin:0 0 2px 0; padding:3px 5px; border:1px solid #ffd600; border-radius:4px; background:${document.body.classList.contains('light') ? '#fff8e1' : '#1e1e1e'}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
-    <div style="margin:0 0 4px 0; padding:6px; border:1px solid #ffd600; border-radius:6px;">
- <b>☀️ Solar Panel</b>
-<div>⚡ ${solar}W needed | ${connectionUsed}</div>
-<div>📊 ${totalVoltage.toFixed(0)}V / ${totalCurrent.toFixed(1)}A</div>
-
-<div>🔌 Breaker (Solar → MPPT): 
-<span style="color:#ff1744;">${solarBreakerDisplay}</span></div>
-
-<div>⚙️ Controller: 
-<span style="color:#00e676;">${controller} ${controllerType}</span></div>
-
-<div style="margin-top:4px;">Wire size from SOLAR → MPPT/PWM</div>
-<div style="background:#00c853; color:#000; padding:4px; border-radius:4px; font-weight:bold; display:inline-block;">
-  ${solarWireValue}
+  // Render results
+  document.getElementById("results").innerHTML = `
+<h3 style="text-align:center; color:#00c853;">⚡ RESULT</h3>
+<div><strong>🔋 Battery (${batteryType.toUpperCase()})</strong><br>
+Needed: <span style="color:#ffea00;">${battNeeded}Ah</span> | Your: <span style="color:#00b0ff;">${batt}Ah</span><br>
+${runtimeText}
 </div>
 
-<div style="margin-top:4px;">Wire size from MPPT/PWM → BATTERY</div>
-<div style="background:#ffea00; color:#000; padding:4px; border-radius:4px; font-weight:bold; display:inline-block;">
-  ${controllerToBatteryWire}
+<div><strong>☀️ Solar Panel</strong><br>
+${solarNeededW}W needed | ${connectionUsed}<br>
+Voltage/Current: ${totalVoltage.toFixed(0)}V / ${totalCurrent.toFixed(1)}A<br>
+Breaker (Solar → MPPT): <span style="color:#ff1744;">${solarBreakerValue}A DC</span><br>
+Wire size (Solar → MPPT): <strong>${solarWire}</strong><br>
+${solarBreakerWarning}
 </div>
 
-<div>🔌 Breaker (MPPT → Battery): 
-<span style="color:#ff1744;">${controllerToBatteryBreaker}A</span></div>
-<b>🔋 Battery → Inverter</b>
-<div>📊 ${batteryCurrentActual.toFixed(1)}A load</div>
-
-<div>🔌 Breaker (Battery → Inverter): 
-<span style="color:#ff1744;">${batteryBreaker}A</span></div>
-
-<div style="margin-top:4px;">Wire size from BATTERY → INVERTER</div>
-<div style="background:#29b6f6; color:#000; padding:4px; border-radius:4px; font-weight:bold; display:inline-block;">
-  ${batteryWireValue}
+<div><strong>⚙️ Solar Controller</strong><br>
+Type: ${controllerType}<br>
+Recommended Size: <span style="color:#00b0ff;">${controllerAmp}A</span><br>
+Breaker: <span style="color:#ff1744;">${controllerBreaker}A DC</span><br>
+Wire size: <strong>${controllerToBatteryWire}</strong>
 </div>
-  <div style="color:#ffea00;">${batteryWarn}</div>
+
+<div><strong>🔌 Battery → Inverter</strong><br>
+Load: ${batteryCurrent.toFixed(1)}A DC <br>
+Breaker: <span style="color:#ff1744;">${batteryBreaker}A</span><br>
+Wire size: <strong>${batteryWire}</strong><br>
+${batteryWarn}
 </div>
-  </div>
 
-  <div style="margin:0; padding:3px 5px; border-radius:4px; background:${batt >= battNeed ? (document.body.classList.contains('light') ? '#c8e6c933' : '#00c85333') : (document.body.classList.contains('light') ? '#ffebee33' : '#ff174433')}; color:${document.body.classList.contains('light') ? '#111' : '#fff'}">
-    <strong>Status:</strong> ${status}
-  </div>
-</div>`;
+<div><strong>Status:</strong> ${status}</div>
+`;
 
-  document.getElementById("results").innerHTML = resultHTML;
 }
 
-  function wireSize(current, distance) {
-  // Voltage drop factor: distance in meters, current in Amps
-  const drop = (current * distance) / 10; // simple approximation
-
-  if (drop <= 5) return "2.5 mm² (14 AWG)";
-  if (drop <= 10) return "4 mm² (12 AWG)";
-  if (drop <= 15) return "6 mm² (10 AWG)";
-  if (drop <= 20) return "10 mm² (8 AWG)";
-  if (drop <= 25) return "16 mm² (6 AWG)";
-  if (drop <= 30) return "25 mm² (4 AWG)";
-  if (drop <= 40) return "35 mm² (2 AWG)";
-  return "50 mm² (1/0 AWG)";
-}
-  function inverterSize(load) {
-    let size = load * 1.5;
-    if (size <= 300) return "300W";
-    if (size <= 500) return "500W";
-    if (size <= 1000) return "1000W";
-    if (size <= 1500) return "1500W";
-    return Math.ceil(size / 500) * 500 + "W";
-  }
-
-function controllerSize(a){
-  const sizes = [10,20,30,40,50,60,80,100];
-  for(let s of sizes){
-    if(a <= s) return s + "A";
-  }
-  return "100A+";
-}
-function nearest(a){
-  const sizes=[10,15,20,25,30,40,50,60,80,100,125];
-  for(let s of sizes){
-    if(a <= s) return s + "A";
-  }
-  return "125A+";
+// Controller sizes
+function nearestControllerAmp(current) {
+  const standard = [10,20,30,40,50,60,80,100];
+  for(let s of standard) if(current <= s) return s;
+  return 100;
 }
 
-  setMode("design");
+// ==================== PEC WIRE SIZE ====================
+function wireSizePEC(current, voltage, distance, breaker) {
+  const awgTable = [
+    {awg:"12 AWG", mm2:4, R:0.00521, maxA:20},
+    {awg:"10 AWG", mm2:6, R:0.00328, maxA:30},
+    {awg:"8 AWG", mm2:8, R:0.00206, maxA:40},
+    {awg:"6 AWG", mm2:16, R:0.00130, maxA:55},
+    {awg:"4 AWG", mm2:25, R:0.00082, maxA:70},
+    {awg:"2 AWG", mm2:35, R:0.00051, maxA:95}
+  ];
 
-  // ==================== FIREBASE CONFIG ====================
-  const firebaseConfig = {
-    apiKey: "AIzaSyDHIjD-VVxdee3G8mVAix_rKnZ-uH-428Y",
-    authDomain: "views-7f735.firebaseapp.com",
-    databaseURL: "https://views-7f735-default-rtdb.firebaseio.com",
-    projectId: "views-7f735",
-    storageBucket: "views-7f735.firebasestorage.app",
-    messagingSenderId: "596752743706",
-    appId: "1:596752743706:web:e91eb138aff3aa7d31c0a3"
-  };
+  const maxVDrop = 0.03 * voltage; // 3%
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-  const functions = firebase.functions();
-
-  // ==================== SECURE VIEW COUNTER ====================
-  let userId = localStorage.getItem("userId");
-  if (!userId) {
-    userId = "user_" + Math.random().toString(36).substr(2,9);
-    localStorage.setItem("userId", userId);
-
-    // Call Cloud Function to increment view safely
-    const incrementView = functions.httpsCallable("incrementView");
-    incrementView({ userId })
-      .then(res => console.log("View counted:", res.data))
-      .catch(err => console.error(err));
+  for(let w of awgTable){
+    if(w.maxA < breaker) continue; // must meet breaker
+    const Vdrop = current * w.R * 2 * distance;
+    if(Vdrop <= maxVDrop) return `${w.awg} (${w.mm2} mm²) - Vdrop ${Vdrop.toFixed(2)}V`;
   }
 
-  // Live total views
-  db.ref("views").on("value", (snapshot) => {
-    document.getElementById("viewCounter").innerText =
-      "Views: " + (snapshot.val() || 0);
-  });
+  return "1/0 AWG or larger (high current or long distance)";
+}
+
+// Breakers
+function nearestBreaker(current) {
+  const adjusted = current * 1.25;
+  const breakers = [10,15,20,30,40,50,60,80,100,125];
+  for (let b of breakers) if (adjusted <= b) return b;
+  return 125;
+}
+
+setMode("design");
 </script>
-
 </body>
 </html>
